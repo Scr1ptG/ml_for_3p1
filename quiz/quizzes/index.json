@@ -1,0 +1,4 @@
+[
+  { "file": "00-demo.json", "title": "Пробный квиз", "description": "5 вопросов, чтобы проверить связь и показать правила" },
+  { "file": "../../01-video/quiz.json", "title": "Урок 1. Видео и OpenCV", "description": "Картинка и видео в cv2: shape, кадры, FPS, flip, cvtColor" }
+]

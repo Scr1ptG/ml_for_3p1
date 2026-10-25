@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пара 1 · Видео — это поток кадров</title>
+<link rel="stylesheet" href="../shared/slides.css">
+<style>
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .chip { padding: 8px 14px; border: 3px solid var(--ink); border-radius: 999px; background: #fff; font-weight: 800; font-size: 18px; box-shadow: 3px 3px 0 var(--ink); }
+  .chip.now { background: var(--c); }
+  .stack { position: relative; width: 460px; height: 330px; }
+  .stack .fr { position: absolute; width: 300px; height: 200px; border: 3px solid var(--ink); border-radius: 10px; box-shadow: 3px 3px 0 var(--ink); background: #fff; transition: transform 0.35s, opacity 0.35s; overflow: hidden; }
+  .stack .fr canvas { width: 100%; height: 100%; }
+  .axis { position: absolute; font-weight: 900; font-size: 22px; font-family: var(--mono); }
+  .shape { font-family: var(--mono); font-size: 34px; font-weight: 900; }
+  .shape span { padding: 0 4px; border-radius: 6px; }
+  .bgr { display: flex; gap: 10px; margin-top: 10px; }
+  .bgr div { flex: 1; border: 3px solid var(--ink); border-radius: 12px; padding: 8px; text-align: center; font-weight: 900; font-size: 26px; font-family: var(--mono); }
+  .budget { position: relative; height: 70px; border: 3px solid var(--ink); border-radius: 14px; background: #fff; overflow: visible; display: flex; }
+  .budget .seg { height: 100%; border-right: 3px solid var(--ink); display: grid; place-items: center; font-weight: 800; font-size: 15px; overflow: hidden; white-space: nowrap; transition: width 0.3s; }
+  .budget .line { position: absolute; top: -14px; bottom: -14px; width: 4px; background: var(--bad); }
+  .budget .line::after { content: attr(data-t); position: absolute; top: -26px; left: -40px; width: 84px; text-align: center; font-weight: 900; color: var(--bad); font-size: 16px; }
+  .toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 28px; }
+  .toggles .btn { justify-content: space-between; }
+  .flow { display: flex; align-items: center; gap: 14px; justify-content: center; margin: 10px 0 24px; }
+  .flow .box { border: 3px solid var(--ink); border-radius: 16px; padding: 14px 18px; background: #fff; box-shadow: var(--sh); font-weight: 900; font-size: 22px; text-align: center; min-width: 170px; position: relative; }
+  .flow .box small { display: block; font-weight: 600; color: var(--muted); font-size: 15px; font-family: var(--mono); }
+  .flow .arr { font-size: 34px; font-weight: 900; }
+  .flow .box.active { background: var(--c); animation: pulse 2.4s infinite; }
+  .flow .box:nth-child(3).active { animation-delay: 0.8s; } .flow .box:nth-child(5).active { animation-delay: 1.6s; }
+  @keyframes pulse { 0%, 30%, 100% { transform: none; background: #fff; } 10%, 20% { transform: translateY(-8px); background: var(--c); } }
+  .ops { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .result-big { font-size: 64px; font-weight: 900; line-height: 1; }
+  .compare { font-size: 22px; margin-top: 10px; }
+  .sv-hint { position: absolute; left: 12px; top: 10px; background: rgba(255, 255, 255, 0.9); border: 2px solid var(--ink); border-radius: 10px; padding: 4px 10px; font-weight: 800; font-size: 15px; }
+  select { padding: 8px 10px; border: 3px solid var(--ink); border-radius: 10px; font-weight: 700; font-size: 18px; background: #fff; }
+  .qr { font-size: 40px; font-weight: 900; font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- 1 -->
+<section class="slide" data-demo="title">
+  <span class="kicker">Раздел «Видео» · Пара 1</span>
+  <div class="cols wide-left grow" style="align-items:center">
+    <div>
+      <h1>Видео — это просто много картинок</h1>
+      <p class="big muted">Пишем свой видео-продакшн</p>
+      <p style="margin-top:26px">Сегодня разберёмся, <b>как устроено видео изнутри</b>, почему оно столько весит и почему фильтры в TikTok иногда тормозят.</p>
+    </div>
+    <div class="frame-box float" style="width:420px;height:300px"><canvas id="t-cv" width="420" height="300"></canvas></div>
+  </div>
+  <aside class="notes"><b>1 мин.</b> Спросите: «Кто сегодня снимал видео или смотрел рилсы?» Все. «Значит, вы каждый день работаете с тензорами — сейчас докажу».</aside>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-demo="spider">
+  <span class="kicker">Наш проект на две недели</span>
+  <h2>Фильтр «Человек-паук: Через вселенные»</h2>
+  <div class="cols wide-left grow">
+    <div class="frame-box" style="position:relative;width:640px;height:420px">
+      <canvas id="sv-cv" width="640" height="420" style="cursor:crosshair;touch-action:none"></canvas>
+      <div class="sv-hint">Нарисуйте фигуру мышкой ✍️</div>
+    </div>
+    <div>
+      <p>Рисуем фигуру — внутри мир превращается в комикс.</p>
+      <p class="muted" style="font-size:21px">Каждая пара добавляет к проекту новый кусок:</p>
+      <div class="chips">
+        <span class="chip now">1. Кадры и конвейер</span><span class="chip">2. Цвет и маска</span>
+        <span class="chip">3. Обучаем маску</span><span class="chip">4. Лица</span>
+        <span class="chip">5. Стиль комикса</span><span class="chip">6. Нейросеть-раскраска</span>
+      </div>
+      <button class="btn" id="sv-cam" style="margin-top:22px">📷 Включить камеру</button>
+    </div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Включите камеру и нарисуйте фигуру — пусть увидят себя в комиксе. «Это не магия: штриховка, контуры и сдвиг цветов. Через две недели вы напишете это на Python сами». Без камеры показывается анимация.</aside>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-demo="flipbook">
+  <span class="kicker">Как мозг видит движение</span>
+  <h2>Видео = кадры, показанные быстро</h2>
+  <div class="cols wide-left grow">
+    <div>
+      <div class="frame-box" style="width:620px;height:330px"><canvas id="fb-cv" width="620" height="330"></canvas></div>
+      <label class="ctl" style="margin-top:16px">Кадров в секунду (FPS): <b id="fb-v">2</b><input type="range" id="fb-r" min="1" max="60" value="2"></label>
+      <label class="ctl"><input type="checkbox" id="fb-ghost"> показать предыдущие кадры</label>
+    </div>
+    <div>
+      <p>Двигайте ползунок. <b>С какого FPS «слайд-шоу» превращается в движение?</b></p>
+      <div class="step card y"><p style="margin:0">≈ <b>12</b> кадров/с — мозг уже склеивает в движение</p></div>
+      <div class="step" style="margin-top:14px">
+        <p>🎬 Кино — <b>24</b> &nbsp; 📺 YouTube — <b>30 / 60</b><br>🎮 Игры — <b>60–144</b> &nbsp; 🐢 Камера наблюдения — <b>5–15</b></p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Начните с 1–2 FPS, медленно ведите вправо, пусть кричат «сейчас!». Скажите, что этот эффект использовали ещё флипбуки и мультфильмы на плёнке.</aside>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-demo="pixels">
+  <span class="kicker">Внутри одного кадра</span>
+  <h2>Кадр — это таблица чисел</h2>
+  <div class="cols grow">
+    <div>
+      <div class="frame-box" style="width:520px;height:390px"><canvas id="px-cv" width="520" height="390"></canvas></div>
+      <label class="ctl" style="margin-top:12px">Разрешение: <b id="px-v">16×12</b><input type="range" id="px-r" min="1" max="6" value="2"></label>
+    </div>
+    <div>
+      <p>Наведите мышку на пиксель:</p>
+      <div class="card" style="padding:14px 18px">
+        <div style="font-family:var(--mono);font-size:22px;font-weight:800" id="px-pos">frame[?, ?]</div>
+        <div class="bgr"><div id="px-b" style="background:#d6e6ff">B</div><div id="px-g" style="background:#d9f5e5">G</div><div id="px-r2" style="background:#ffdada">R</div></div>
+      </div>
+      <p style="margin-top:16px">Каждый пиксель — <b>3 числа от 0 до 255</b>.<br>OpenCV хранит их в порядке <span class="tag">B G R</span>, а не RGB.</p>
+      <button class="btn" id="px-cam">📷 Снимок с камеры</button>
+    </div>
+  </div>
+  <aside class="notes"><b>3 мин.</b> Сделайте снимок класса и уменьшайте разрешение: «Видите, это всё ещё вы, просто меньше чисел». Спросите: «Сколько чисел в кадре 640×480?» (921 600). BGR — исторически так хранили производители камер, OpenCV оставил порядок.</aside>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-demo="tensor">
+  <span class="kicker">Главная идея пары</span>
+  <h2>Видео — это тензор</h2>
+  <div class="cols grow">
+    <div class="stack" id="tn-stack"></div>
+    <div>
+      <div class="shape">(<span style="background:#ffe08a" id="tn-t">8</span>, <span style="background:#ffd0d0">480</span>, <span style="background:#d6e6ff">640</span>, <span style="background:#d9f5e5">3</span>)</div>
+      <p style="margin-top:10px"><b style="background:#ffe08a">T</b> кадров × <b style="background:#ffd0d0">H</b> высота × <b style="background:#d6e6ff">W</b> ширина × <b style="background:#d9f5e5">C</b> каналы</p>
+      <label class="ctl">Кадров T: <input type="range" id="tn-r" min="1" max="12" value="8"></label>
+      <div class="step card p" style="margin-top:14px"><p style="margin:0"><b>Вопрос:</b> ролик 10 секунд, 30 FPS, 480×640. Какой у него shape?</p></div>
+      <div class="step card g" style="margin-top:12px"><p style="margin:0;font-family:var(--mono);font-weight:800">(300, 480, 640, 3)</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>3 мин.</b> Тензор — просто многомерная таблица чисел. Картинка — 3D, видео — 4D, пачка видео — 5D. В PyTorch тот же ролик хранится как (T, C, H, W): каналы идут перед высотой. Это пригодится в конце пары.</aside>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-demo="size">
+  <span class="kicker">Чем больше, тем лучше?</span>
+  <h2>Сколько весит видео без сжатия</h2>
+  <div class="cols grow">
+    <div>
+      <div class="row" style="flex-wrap:wrap;gap:12px">
+        <select id="sz-res"><option value="640x480">640×480</option><option value="1280x720">1280×720 (HD)</option><option value="1920x1080" selected>1920×1080 (Full HD)</option><option value="3840x2160">3840×2160 (4K)</option></select>
+        <select id="sz-fps"><option>24</option><option selected>30</option><option>60</option></select>
+        <select id="sz-sec"><option value="10">10 секунд</option><option value="60" selected>1 минута</option><option value="600">10 минут</option></select>
+      </div>
+      <p class="muted" style="margin-top:16px;font-family:var(--mono);font-size:21px" id="sz-formula"></p>
+      <div class="result-big" id="sz-out"></div>
+      <p class="compare" id="sz-cmp"></p>
+    </div>
+    <div>
+      <div class="step card y"><p style="margin:0">А на телефоне минута Full HD весит ≈ <b>100 МБ</b>.</p></div>
+      <div class="step card" style="margin-top:14px"><p style="margin:0" class="big">Куда делись 99% данных? 🤔</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Пусть сами предложат разрешение и время. Формула: ширина × высота × 3 байта × FPS × секунды. Подведите к вопросу «куда делись данные» — ответ на следующем слайде.</aside>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-demo="diff">
+  <span class="kicker">Видео не видео, если его не сжать</span>
+  <h2>Соседние кадры почти одинаковые</h2>
+  <div class="row" style="justify-content:center;gap:18px">
+    <div class="center"><div class="frame-box"><canvas id="df-a" width="330" height="220"></canvas></div><p style="margin-top:8px">Кадр <b>t</b></p></div>
+    <div class="huge" style="font-size:54px">−</div>
+    <div class="center"><div class="frame-box"><canvas id="df-b" width="330" height="220"></canvas></div><p style="margin-top:8px">Кадр <b>t+1</b></p></div>
+    <div class="huge" style="font-size:54px">=</div>
+    <div class="center"><div class="frame-box"><canvas id="df-c" width="330" height="220"></canvas></div><p style="margin-top:8px">Разница</p></div>
+  </div>
+  <div class="cols" style="margin-top:12px">
+    <div class="step card g"><p style="margin:0">Кодек хранит <b>ключевой кадр</b> целиком, а дальше — <b>только изменения</b>. Отсюда сжатие в 100–200 раз.</p></div>
+    <div class="step card r"><p style="margin:0">Плохой интернет → изменения теряются → видео «<b>сыпется квадратиками</b>» до следующего ключевого кадра.</p></div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Спросите, видели ли они «квадратики» при плохом интернете. Это потерянные кадры-разницы. Кодек — способ сжатия (H.264, VP9), контейнер — «коробка» (.mp4, .avi).</aside>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-demo="budget">
+  <span class="kicker">Сколько у нас есть времени?</span>
+  <h2>Бюджет одного кадра</h2>
+  <p>При 30 FPS на <b>всю</b> обработку кадра есть <b>1000 / 30 ≈ 33 мс</b>. Не успели — кадр пропущен.</p>
+  <div style="margin-top:40px"><div class="budget" id="bg-bar"><div class="line" id="bg-line" data-t="33 мс"></div></div></div>
+  <div class="toggles" id="bg-tg"></div>
+  <p class="big" style="margin-top:22px">Реальная скорость: <span id="bg-fps"></span></p>
+  <aside class="notes"><b>2 мин.</b> Включайте шаги по одному. Нейросеть на процессоре сразу ломает бюджет — поэтому фильтры в соцсетях используют маленькие модели и видеокарту телефона. Вопрос: «Что делать, если не успеваем?» — уменьшить кадр, обрабатывать каждый второй кадр, упростить модель.</aside>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <span class="kicker">Конвейер (pipeline)</span>
+  <h2>Любая видеообработка — это цикл</h2>
+  <div class="flow"><div class="box active">Прочитать кадр<small>cap.read()</small></div><span class="arr">→</span><div class="box active">Обработать<small>process(frame)</small></div><span class="arr">→</span><div class="box active">Показать / записать<small>imshow · write</small></div><span class="arr">↺</span></div>
+  <pre class="py">
+import cv2
+cap = cv2.VideoCapture(0)            # 0 — веб-камера
+
+while True:
+    ok, frame = cap.read()           # 1. прочитать кадр
+    if not ok:
+        break
+    frame = cv2.flip(frame, 1)       # 2. обработать #!
+    cv2.imshow("video", frame)       # 3. показать
+    if cv2.waitKey(1) == ord("q"):   # нажали q — выходим
+        break
+  </pre>
+  <aside class="notes"><b>2 мин.</b> Этот цикл — скелет и нашего проекта, и контрольной. Меняется только шаг 2. waitKey(1) ждёт 1 мс нажатия клавиши и одновременно даёт окну перерисоваться.</aside>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <span class="kicker">Кнопки и состояние</span>
+  <h2>Нажал клавишу — эффект включился</h2>
+  <div class="cols wide-left">
+    <pre class="py sm">
+state = {"caption": False}           # состояние: что включено
+
+def process(frame, key, state):
+    if key == ord("c"):              # нажали c #!
+        state["caption"] = not state["caption"]   # переключили #!
+    if state["caption"]:
+        cv2.putText(frame, "IThub Video", (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.2,
+                    (255, 255, 255), 2)
+    return frame
+    </pre>
+    <div>
+      <div class="card y"><p style="margin:0"><code>not</code> переворачивает значение:<br><code>False → True → False</code></p></div>
+      <div class="step card r" style="margin-top:16px"><p style="margin:0"><b>Это и есть контрольная:</b><br><span class="tag">s</span> — цветокоррекция,<br><span class="tag">t</span> — поворот на 180°</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Состояние — память программы между кадрами. Без него эффект горел бы только в тот кадр, когда нажата клавиша. Скажите, что контрольная будет ровно на этот шаблон — им понадобится только поменять обработку.</aside>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <span class="kicker">Работаем в Google Colab</span>
+  <h2>У Colab нет окна — показываем плеером</h2>
+  <div class="flow" style="margin-top:20px">
+    <div class="box">Видеофайл<small>VideoCapture</small></div><span class="arr">→</span>
+    <div class="box">Список кадров<small>cap.read()</small></div><span class="arr">→</span>
+    <div class="box">Меняем каждый<small>for frame in …</small></div><span class="arr">→</span>
+    <div class="box">Смотрим<small>show_video</small></div>
+  </div>
+  <pre class="py sm">
+cap = cv2.VideoCapture("vtest.avi")
+frames = []
+while len(frames) < 80:
+    ok, frame = cap.read()          # очередной кадр
+    if not ok:
+        break
+    frames.append(frame)
+
+result = []
+for frame in frames:                # меняем каждый кадр #!
+    result.append(cv2.flip(frame, 1))
+show_video(result)
+  </pre>
+  <aside class="notes"><b>1 мин.</b> Colab работает на сервере Google, окна и камеры там нет. Поэтому читаем видео из файла, складываем кадры в список, меняем их в цикле и показываем плеером. Видео скачивает сервер Google, а не сеть колледжа.</aside>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-demo="torch">
+  <span class="kicker">Заглянем вперёд: PyTorch</span>
+  <h2>Одна строка — один эффект</h2>
+  <div class="cols">
+    <div>
+      <div class="frame-box" style="width:480px;height:360px"><canvas id="to-cv" width="480" height="360"></canvas></div>
+    </div>
+    <div>
+      <div class="ops" id="to-ops"></div>
+      <pre class="py sm" id="to-code" style="min-height:250px"></pre>
+    </div>
+  </div>
+  <aside class="notes"><b>3 мин.</b> Нажимайте кнопки — справа появляется строка кода, которая это делает с тензором. Подчеркните: x[2] — красный канал, потому что BGR. Поворот на 180° — это отражение по двум осям сразу. В практике они сделают это сами, а в нейросетях все данные — такие же тензоры.</aside>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <span class="kicker">Практика</span>
+  <h2>Что делаем в Colab</h2>
+  <div class="cols">
+    <div>
+      <h3>Часть 1. Картинка (16 заданий)</h3>
+      <p style="font-size:22px">открыть и показать · размер <code>shape</code> · пиксель · закрасить и вырезать кусок · <code>resize</code> · <code>flip</code> · <code>rotate</code> · серый · каналы B G R · яркость · рисование · сохранение</p>
+      <h3 style="margin-top:14px">Часть 2. Видео (8 заданий)</h3>
+      <p style="font-size:22px">открыть видео · FPS и длительность · достать кадр · кадр по номеру · цикл по кадрам · смотреть в Colab · менять каждый кадр · сохранить</p>
+    </div>
+    <div>
+      <div class="card g"><p style="margin:0">В каждом задании замените <code>None</code> на свой код.<br>Проверка <b>✅ / ❌</b>, под ней две подсказки: 💡 идея и 🆘 почти ответ.</p></div>
+      <div class="card y" style="margin-top:14px"><p style="margin:0">Шпаргалка по всем функциям — в конце ноутбука.</p></div>
+      <p style="margin-top:22px">Ноутбук: <a data-site="01-video/lesson.ipynb" target="_blank">открыть в Colab</a></p>
+    </div>
+  </div>
+  <aside class="notes">Часть 1 ~40 минут, часть 2 ~35 минут. Если не успевают — часть 2 переносится на вторую пару. Самые частые ошибки: порядок (ширина, высота) в resize и забытый .copy(). КТ 1 — в конце ноутбука.</aside>
+</section>
+
+<!-- 14 -->
+<section class="slide center" style="justify-content:center;align-items:center">
+  <div class="huge pop">Квиз! 🎯</div>
+  <p class="big" style="margin-top:24px">Открывайте <a data-site="quiz" target="_blank" class="qr">сайт квиза</a></p>
+  <p class="big">и вводите код с экрана</p>
+  <p class="muted" style="margin-top:16px">Быстрее и правильнее — больше очков. Верные ответы — в конце.</p>
+  <aside class="notes">Откройте host.html в новой вкладке и выберите «Пара 1». Вопросы 1–2 — повторение раздела «Изображения».</aside>
+</section>
+
+</div>
+<script src="../shared/slides.js"></script>
+<script>
+'use strict';
+// ---------- Общие помощники ----------
+const INK = '#1F1B2E';
+function scene(ctx, w, h, t, ballOnly) {
+  // Небо, холмы, домик и мяч. t — время в секундах
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#9fd3ff'); g.addColorStop(1, '#e8f6ff');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#FFC93C'; ctx.beginPath(); ctx.arc(w * 0.85, h * 0.2, h * 0.09, 0, 7); ctx.fill();
+  ctx.fillStyle = '#3DC47E'; ctx.beginPath(); ctx.ellipse(w * 0.25, h, w * 0.45, h * 0.35, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#2FB36D'; ctx.beginPath(); ctx.ellipse(w * 0.85, h, w * 0.4, h * 0.28, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#FF8FB1'; ctx.fillRect(w * 0.08, h * 0.55, w * 0.16, h * 0.22);
+  ctx.fillStyle = '#FF6B6B'; ctx.beginPath(); ctx.moveTo(w * 0.06, h * 0.56); ctx.lineTo(w * 0.16, h * 0.42); ctx.lineTo(w * 0.26, h * 0.56); ctx.fill();
+  const p = ballPos(t, w, h);
+  ctx.fillStyle = '#4D96FF'; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2, w / 160);
+  ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * p.sx, p.r * p.sy, 0, 0, 7); ctx.fill(); ctx.stroke();
+}
+function ballPos(t, w, h) {
+  const period = 3, u = (t % period) / period;
+  const x = w * 0.15 + w * 0.7 * (u < 0.5 ? u * 2 : 2 - u * 2);
+  const b = Math.abs(Math.sin(t * Math.PI * 1.3));
+  const r = h * 0.09, ground = h * 0.82;
+  const y = ground - r - b * h * 0.5;
+  const squash = b < 0.12 ? 1 - (0.12 - b) * 2.5 : 1;
+  return { x, y: y + r * (1 - squash), r, sx: 2 - squash, sy: squash };
+}
+const fit = c => { const ctx = c.getContext('2d'); return ctx; };
+
+// ---------- 1. Титул ----------
+Deck.demos.title = slide => {
+  const c = document.getElementById('t-cv'), ctx = fit(c);
+  return Deck.loop(t => scene(ctx, c.width, c.height, t / 1000));
+};
+
+// ---------- 2. Фильтр «Через вселенные» ----------
+(() => {
+  let path = null;
+  function star(w, h) {
+    const pts = [], cx = w * 0.5, cy = h * 0.5;
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? h * 0.2 : h * 0.44;
+      pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+    }
+    return pts;
+  }
+  Deck.demos.spider = slide => {
+    const c = document.getElementById('sv-cv'), ctx = c.getContext('2d');
+    const W = c.width, H = c.height;
+    const small = document.createElement('canvas'); small.width = 320; small.height = 210;
+    const sctx = small.getContext('2d', { willReadFrequently: true });
+    const fx = document.createElement('canvas'); fx.width = 320; fx.height = 210;
+    const fctx = fx.getContext('2d');
+    if (!path) path = star(W, H);
+    let video = null, drawing = null;
+    const camBtn = document.getElementById('sv-cam');
+    camBtn.onclick = () => Deck.camera().then(v => { video = v; camBtn.textContent = v ? '📷 Камера включена' : '📷 Камера недоступна'; });
+    Deck.camera.length; // камера включается только по кнопке
+    const pos = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
+    const finish = () => { if (drawing && drawing.length > 8) path = drawing; drawing = null; };
+    c.onpointerdown = e => { e.preventDefault(); drawing = [pos(e)]; try { c.setPointerCapture(e.pointerId); } catch (er) { /* без захвата */ } };
+    c.onpointermove = e => { if (drawing && e.buttons) drawing.push(pos(e)); else if (drawing) finish(); };
+    c.onpointerup = c.onpointercancel = c.onlostpointercapture = finish;
+    window.addEventListener('pointerup', finish);
+
+    function comic(src) {
+      // Постеризация + сдвиг каналов + контуры (Собель)
+      const w = src.width, h = src.height, d = src.data, out = fctx.createImageData(w, h), o = out.data;
+      const L = new Float32Array(w * h);
+      for (let i = 0; i < w * h; i++) L[i] = 0.3 * d[i * 4] + 0.59 * d[i * 4 + 1] + 0.11 * d[i * 4 + 2];
+      const q = v => Math.round(Math.max(0, Math.min(255, v)) / 85) * 85;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = y * w + x, j = i * 4;
+        const xr = Math.min(w - 1, x + 3), xb = Math.max(0, x - 3);
+        // сдвиг красного и синего каналов в разные стороны — «глитч» из мультфильма
+        let r = d[(y * w + xr) * 4], g = d[j + 1], b = d[(y * w + xb) * 4 + 2];
+        // контраст и насыщенность, потом всего 4 уровня на канал
+        const gray = (r + g + b) / 3;
+        r = q(gray + ((r - 128) * 1.4 + 128 - gray) * 1.9);
+        g = q(gray + ((g - 128) * 1.4 + 128 - gray) * 1.9);
+        b = q(gray + ((b - 128) * 1.4 + 128 - gray) * 1.9);
+        let edge = 0;
+        if (x > 0 && y > 0 && x < w - 1 && y < h - 1) {
+          const gx = L[i - w + 1] + 2 * L[i + 1] + L[i + w + 1] - L[i - w - 1] - 2 * L[i - 1] - L[i + w - 1];
+          const gy = L[i + w - 1] + 2 * L[i + w] + L[i + w + 1] - L[i - w - 1] - 2 * L[i - w] - L[i - w + 1];
+          edge = Math.abs(gx) + Math.abs(gy);
+        }
+        if (edge > 170) { r = g = b = 25; }
+        o[j] = r; o[j + 1] = g; o[j + 2] = b; o[j + 3] = 255;
+      }
+      fctx.putImageData(out, 0, 0);
+      return L;
+    }
+
+    return Deck.loop(t => {
+      // Источник: камера (зеркально) или анимированная сцена
+      sctx.save();
+      if (video) { sctx.translate(320, 0); sctx.scale(-1, 1); sctx.drawImage(video, 0, 0, 320, 210); }
+      else scene(sctx, 320, 210, t / 1000);
+      sctx.restore();
+      const src = sctx.getImageData(0, 0, 320, 210);
+      ctx.drawImage(small, 0, 0, W, H);
+      const L = comic(src);
+      const p = drawing || path;
+      ctx.save();
+      ctx.beginPath(); p.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
+      if (!drawing) {
+        ctx.clip();
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(fx, 0, 0, W, H);
+        // Полутоновые точки, как в старых комиксах
+        const cell = 9;
+        for (let y = cell / 2; y < H; y += cell) for (let x = cell / 2; x < W; x += cell) {
+          const lx = Math.min(319, Math.floor(x / 2)), ly = Math.min(209, Math.floor(y / 2));
+          const light = L[ly * 320 + lx] / 255;
+          ctx.beginPath();
+          if (light > 0.55) { ctx.fillStyle = 'rgba(255,59,140,0.55)'; ctx.arc(x, y, 1.2 + (light - 0.55) * 4, 0, 7); }
+          else { ctx.fillStyle = 'rgba(31,27,46,0.5)'; ctx.arc(x, y, (1 - light) * cell * 0.45, 0, 7); }
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+      ctx.beginPath(); p.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); if (!drawing) ctx.closePath();
+      ctx.lineWidth = 7; ctx.strokeStyle = INK; ctx.stroke();
+      ctx.lineWidth = 3; ctx.strokeStyle = '#FF3B6B'; ctx.setLineDash([12, 8]); ctx.stroke(); ctx.setLineDash([]);
+    });
+  };
+})();
+
+// ---------- 3. Флипбук ----------
+Deck.demos.flipbook = slide => {
+  const c = document.getElementById('fb-cv'), ctx = c.getContext('2d');
+  const r = document.getElementById('fb-r'), v = document.getElementById('fb-v'), gh = document.getElementById('fb-ghost');
+  r.oninput = () => (v.textContent = r.value);
+  v.textContent = r.value;
+  return Deck.loop(now => {
+    const fps = +r.value, t = now / 1000;
+    const frame = Math.floor(t * fps), ft = frame / fps;
+    scene(ctx, c.width, c.height, ft);
+    if (gh.checked) {
+      for (let k = 1; k <= 4; k++) {
+        const p = ballPos((frame - k) / fps, c.width, c.height);
+        ctx.globalAlpha = 0.5 - k * 0.1; ctx.fillStyle = '#4D96FF';
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * p.sx, p.r * p.sy, 0, 0, 7); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = 'rgba(31,27,46,0.8)'; ctx.fillRect(10, 10, 150, 34);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Consolas'; ctx.fillText('кадр № ' + (frame % 10000), 20, 33);
+  });
+};
+
+// ---------- 4. Пиксели ----------
+(() => {
+  let snapshot = null; // ImageData 64x48 со снимка камеры
+  const RES = [[8, 6], [16, 12], [32, 24], [64, 48], [128, 96], [260, 195]];
+  Deck.demos.pixels = slide => {
+    const c = document.getElementById('px-cv'), ctx = c.getContext('2d');
+    const r = document.getElementById('px-r'), v = document.getElementById('px-v');
+    const src = document.createElement('canvas'); src.width = 260; src.height = 195;
+    const sctx = src.getContext('2d', { willReadFrequently: true });
+    let data = null, gw = 16, gh = 12, hover = null;
+    function build() {
+      [gw, gh] = RES[+r.value - 1];
+      v.textContent = `${gw}×${gh}`;
+      if (snapshot) sctx.drawImage(snapshot, 0, 0, 260, 195); else scene(sctx, 260, 195, 0.9);
+      const tmp = document.createElement('canvas'); tmp.width = gw; tmp.height = gh;
+      const tctx = tmp.getContext('2d', { willReadFrequently: true });
+      tctx.drawImage(src, 0, 0, gw, gh);
+      data = tctx.getImageData(0, 0, gw, gh).data;
+      draw();
+    }
+    function draw() {
+      const cw = c.width / gw, ch = c.height / gh;
+      for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+        const i = (y * gw + x) * 4;
+        ctx.fillStyle = `rgb(${data[i]},${data[i + 1]},${data[i + 2]})`;
+        ctx.fillRect(x * cw, y * ch, Math.ceil(cw), Math.ceil(ch));
+      }
+      if (gw <= 32) { ctx.strokeStyle = 'rgba(31,27,46,0.25)'; ctx.lineWidth = 1; for (let x = 0; x <= gw; x++) { ctx.beginPath(); ctx.moveTo(x * cw, 0); ctx.lineTo(x * cw, c.height); ctx.stroke(); } for (let y = 0; y <= gh; y++) { ctx.beginPath(); ctx.moveTo(0, y * ch); ctx.lineTo(c.width, y * ch); ctx.stroke(); } }
+      if (hover) { ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.strokeRect(hover[0] * cw, hover[1] * ch, cw, ch); }
+    }
+    c.onpointermove = e => {
+      const b = c.getBoundingClientRect();
+      const x = Math.floor((e.clientX - b.left) / b.width * gw), y = Math.floor((e.clientY - b.top) / b.height * gh);
+      if (x < 0 || y < 0 || x >= gw || y >= gh) return;
+      hover = [x, y];
+      const i = (y * gw + x) * 4;
+      document.getElementById('px-pos').textContent = `frame[${y}, ${x}]  (строка, столбец)`;
+      document.getElementById('px-b').textContent = data[i + 2];
+      document.getElementById('px-g').textContent = data[i + 1];
+      document.getElementById('px-r2').textContent = data[i];
+      draw();
+    };
+    r.oninput = build;
+    document.getElementById('px-cam').onclick = () => Deck.camera().then(vid => {
+      if (!vid) return alert('Камера недоступна');
+      const s = document.createElement('canvas'); s.width = 260; s.height = 195;
+      const x = s.getContext('2d'); x.translate(260, 0); x.scale(-1, 1); x.drawImage(vid, 0, 0, 260, 195);
+      snapshot = s; build();
+    });
+    build();
+  };
+})();
+
+// ---------- 5. Тензор ----------
+Deck.demos.tensor = slide => {
+  const box = document.getElementById('tn-stack'), r = document.getElementById('tn-r');
+  box.innerHTML = '';
+  const frames = [];
+  for (let i = 0; i < 12; i++) {
+    const d = document.createElement('div'); d.className = 'fr';
+    const cv = document.createElement('canvas'); cv.width = 300; cv.height = 200;
+    scene(cv.getContext('2d'), 300, 200, i * 0.12);
+    d.appendChild(cv); box.appendChild(d); frames.push(d);
+  }
+  box.insertAdjacentHTML('beforeend', '<div class="axis" style="left:0;top:300px">T →</div><div class="axis" style="left:-36px;top:200px">H</div><div class="axis" style="left:160px;top:330px">W</div>');
+  function upd() {
+    const n = +r.value;
+    document.getElementById('tn-t').textContent = n;
+    frames.forEach((f, i) => {
+      const k = n - 1 - i; // последний кадр — спереди
+      f.style.opacity = i < n ? 1 : 0;
+      f.style.zIndex = 20 - i;
+      f.style.transform = `translate(${40 + i * 12}px, ${100 - i * 9}px)`;
+    });
+  }
+  r.oninput = upd; upd();
+};
+
+// ---------- 6. Размер ----------
+Deck.demos.size = slide => {
+  const res = document.getElementById('sz-res'), fps = document.getElementById('sz-fps'), sec = document.getElementById('sz-sec');
+  function upd() {
+    const [w, h] = res.value.split('x').map(Number), f = +fps.value, s = +sec.value;
+    const bytes = w * h * 3 * f * s;
+    const gb = bytes / 1024 ** 3;
+    document.getElementById('sz-formula').textContent = `${w} × ${h} × 3 × ${f} × ${s}`;
+    document.getElementById('sz-out').textContent = gb >= 1 ? gb.toFixed(1).replace('.', ',') + ' ГБ' : Math.round(bytes / 1024 ** 2) + ' МБ';
+    const perSec = w * h * 3 * f / 1024 ** 2;
+    document.getElementById('sz-cmp').innerHTML = `Каждую секунду — <b>${Math.round(perSec)} МБ</b>.<br>Флешка на 16 ГБ заполнится за <b>${Math.max(1, Math.round(16 * 1024 / perSec))} с</b>.`;
+  }
+  [res, fps, sec].forEach(el => (el.onchange = upd)); upd();
+};
+
+// ---------- 7. Разница кадров ----------
+Deck.demos.diff = slide => {
+  const a = document.getElementById('df-a').getContext('2d', { willReadFrequently: true });
+  const b = document.getElementById('df-b').getContext('2d', { willReadFrequently: true });
+  const c = document.getElementById('df-c').getContext('2d');
+  const W = 330, H = 220;
+  return Deck.loop(now => {
+    const t = now / 1000 * 0.6;
+    scene(a, W, H, t); scene(b, W, H, t + 1 / 12);
+    const da = a.getImageData(0, 0, W, H).data, db = b.getImageData(0, 0, W, H), o = db.data;
+    const out = c.createImageData(W, H), od = out.data;
+    for (let i = 0; i < o.length; i += 4) {
+      const d = Math.min(255, (Math.abs(o[i] - da[i]) + Math.abs(o[i + 1] - da[i + 1]) + Math.abs(o[i + 2] - da[i + 2])) * 2);
+      od[i] = d; od[i + 1] = d; od[i + 2] = d; od[i + 3] = 255;
+    }
+    c.putImageData(out, 0, 0);
+  });
+};
+
+// ---------- 8. Бюджет кадра ----------
+Deck.demos.budget = slide => {
+  const steps = [
+    { n: 'Прочитать кадр', ms: 4, c: '#A0E7FF', on: true },
+    { n: 'Перевести в HSV', ms: 3, c: '#d9f5e5', on: true },
+    { n: 'Найти лица (каскад)', ms: 18, c: '#FFC93C', on: false },
+    { n: 'Нарисовать рамки', ms: 2, c: '#FF8FB1', on: false },
+    { n: 'Нейросеть на процессоре', ms: 60, c: '#FF6B6B', on: false },
+    { n: 'Показать на экране', ms: 3, c: '#ece9ff', on: true },
+  ];
+  const bar = document.getElementById('bg-bar'), tg = document.getElementById('bg-tg'), line = document.getElementById('bg-line');
+  const scale = 1136 / 100; // 100 мс на всю ширину
+  line.style.left = (1000 / 30) * scale + 'px';
+  tg.innerHTML = steps.map((s, i) => `<button class="btn ${s.on ? 'on' : ''}" data-i="${i}"><span>${s.n}</span><b>${s.ms} мс</b></button>`).join('');
+  function upd() {
+    bar.querySelectorAll('.seg').forEach(x => x.remove());
+    let sum = 0;
+    steps.forEach(s => {
+      if (!s.on) return;
+      const seg = document.createElement('div'); seg.className = 'seg';
+      seg.style.width = Math.min(s.ms, Math.max(0, 100 - sum)) * scale + 'px'; seg.style.background = s.c;
+      seg.textContent = s.ms >= 6 ? s.n : '';
+      bar.insertBefore(seg, line); sum += s.ms;
+    });
+    const fps = Math.min(30, 1000 / Math.max(sum, 1));
+    document.getElementById('bg-fps').innerHTML = `<b style="color:${sum > 33.4 ? 'var(--bad)' : 'var(--ok)'}">${sum} мс → ${fps.toFixed(0)} FPS</b>${sum > 33.4 ? ' — кадры пропускаются 🐢' : ' — успеваем ✅'}`;
+  }
+  tg.onclick = e => { const b = e.target.closest('[data-i]'); if (!b) return; const s = steps[+b.dataset.i]; s.on = !s.on; b.classList.toggle('on', s.on); upd(); };
+  upd();
+};
+
+// ---------- 12. PyTorch-операции ----------
+Deck.demos.torch = slide => {
+  const c = document.getElementById('to-cv'), ctx = c.getContext('2d', { willReadFrequently: true });
+  const OPS = [
+    { id: 'bright', n: '☀️ Ярче', code: 'x = (x * 1.3).clamp(0, 255)' },
+    { id: 'flip', n: '🔄 Поворот 180°', code: 'x = torch.flip(x, dims=[1, 2])' },
+    { id: 'red', n: '🟥 Красный +10%', code: 'x[2] = (x[2] * 1.1).clamp(0, 255)' },
+    { id: 'blue', n: '🟦 Синий +10%', code: 'x[0] = (x[0] * 1.1).clamp(0, 255)' },
+    { id: 'gray', n: '⬛ Ч/Б', code: 'x = x.mean(dim=0, keepdim=True).repeat(3, 1, 1)' },
+    { id: 'neg', n: '🎞 Негатив', code: 'x = 255 - x' },
+  ];
+  const on = new Set();
+  const opsBox = document.getElementById('to-ops'), code = document.getElementById('to-code');
+  opsBox.innerHTML = OPS.map(o => `<button class="btn" data-id="${o.id}">${o.n}</button>`).join('') + '<button class="btn" id="to-cam">📷</button>';
+  const hl = s => s.replace(/(#.*)/g, '<span class="c">$1</span>').replace(/\b(torch|import|as)\b/g, '<span class="k">$1</span>').replace(/\b(\d+\.?\d*)\b/g, '<span class="n">$1</span>');
+  function upd() {
+    const lines = ['x = torch.from_numpy(frame).permute(2, 0, 1).float()', '# x.shape = (3, H, W): каналы B, G, R', ''];
+    OPS.forEach(o => on.has(o.id) && lines.push(o.code));
+    code.innerHTML = hl(lines.join('\n'));
+  }
+  opsBox.onclick = e => {
+    const b = e.target.closest('[data-id]');
+    if (!b) return;
+    on.has(b.dataset.id) ? on.delete(b.dataset.id) : on.add(b.dataset.id);
+    b.classList.toggle('on'); upd();
+  };
+  let video = null;
+  document.getElementById('to-cam').onclick = () => Deck.camera().then(v => (video = v));
+  upd();
+  const W = c.width, H = c.height;
+  return Deck.loop(now => {
+    ctx.save();
+    if (video) { ctx.translate(W, 0); ctx.scale(-1, 1); ctx.drawImage(video, 0, 0, W, H); } else scene(ctx, W, H, now / 1000);
+    ctx.restore();
+    if (!on.size) return;
+    const img = ctx.getImageData(0, 0, W, H), d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      let r = d[i], g = d[i + 1], b = d[i + 2];
+      if (on.has('bright')) { r *= 1.3; g *= 1.3; b *= 1.3; }
+      if (on.has('red')) r *= 1.1;
+      if (on.has('blue')) b *= 1.1;
+      if (on.has('gray')) r = g = b = (r + g + b) / 3;
+      if (on.has('neg')) { r = 255 - Math.min(255, r); g = 255 - Math.min(255, g); b = 255 - Math.min(255, b); }
+      d[i] = r; d[i + 1] = g; d[i + 2] = b;
+    }
+    if (on.has('flip')) {
+      const u = new Uint32Array(d.buffer); u.reverse();
+    }
+    ctx.putImageData(img, 0, 0);
+  });
+};
+</script>
+</body>
+</html>
