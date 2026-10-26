@@ -1,4 +1,17 @@
 [
-  { "file": "00-demo.json", "title": "Пробный квиз", "description": "5 вопросов, чтобы проверить связь и показать правила" },
-  { "file": "../../01-video/quiz.json", "title": "Урок 1. Видео и OpenCV", "description": "Картинка и видео в cv2: shape, кадры, FPS, flip, cvtColor" }
+  {
+    "file": "00-demo.json",
+    "title": "Пробный квиз",
+    "description": "5 вопросов, чтобы проверить связь и показать правила"
+  },
+  {
+    "file": "../../01-video/quiz.json",
+    "title": "Урок 1. Видео и OpenCV",
+    "description": "Картинка и видео в cv2: shape, кадры, FPS, flip, cvtColor"
+  },
+  {
+    "file": "../../02-video-production/quiz.json",
+    "title": "Пара 2. Что такое видео",
+    "description": "FPS, бюджет кадра, сжатие, кодек и контейнер, HSV, тензор видео"
+  }
 ]

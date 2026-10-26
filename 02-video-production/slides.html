@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пара 2 · Что такое видео</title>
+<link rel="stylesheet" href="../shared/slides.css">
+<style>
+  .flow { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 10px 0 22px; flex-wrap: wrap; }
+  .flow .box { border: 3px solid var(--ink); border-radius: 16px; padding: 12px 16px; background: #fff; box-shadow: var(--sh); font-weight: 900; font-size: 20px; text-align: center; min-width: 150px; }
+  .flow .box small { display: block; font-weight: 600; color: var(--muted); font-size: 15px; font-family: var(--mono); }
+  .flow .arr { font-size: 30px; font-weight: 900; }
+  table.t { border-collapse: collapse; font-size: 22px; width: 100%; background: #fff; border: 3px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: var(--sh); }
+  table.t th, table.t td { padding: 9px 14px; border-bottom: 2px solid var(--soft); text-align: left; }
+  table.t th { background: #fff3c4; }
+  .shape { font-family: var(--mono); font-size: 36px; font-weight: 900; }
+  .shape span { padding: 0 6px; border-radius: 6px; }
+  .budget { position: relative; height: 64px; border: 3px solid var(--ink); border-radius: 14px; background: #fff; display: flex; }
+  .budget .seg { height: 100%; border-right: 3px solid var(--ink); display: grid; place-items: center; font-weight: 800; font-size: 15px; overflow: hidden; white-space: nowrap; transition: width 0.3s; }
+  .budget .line { position: absolute; top: -14px; bottom: -14px; width: 4px; background: var(--bad); }
+  .budget .line::after { content: attr(data-t); position: absolute; top: -26px; left: -40px; width: 84px; text-align: center; font-weight: 900; color: var(--bad); font-size: 16px; }
+  .toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 26px; }
+  .toggles .btn { justify-content: space-between; }
+  select { padding: 8px 10px; border: 3px solid var(--ink); border-radius: 10px; font-weight: 700; font-size: 18px; background: #fff; }
+  .result-big { font-size: 60px; font-weight: 900; line-height: 1; }
+  .sw { width: 180px; height: 180px; border: 3px solid var(--ink); border-radius: 18px; box-shadow: var(--sh); }
+  .vals { font-family: var(--mono); font-size: 24px; font-weight: 800; line-height: 1.6; }
+  .chg { color: var(--bad); } .same { color: var(--ok); }
+  .cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .ico { font-size: 48px; }
+  .formula { font-family: var(--mono); font-size: 28px; font-weight: 900; background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 12px 18px; box-shadow: var(--sh); text-align: center; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- 1 -->
+<section class="slide" data-demo="title">
+  <span class="kicker">Раздел «Видео» · Пара 2</span>
+  <div class="cols wide-left grow" style="align-items:center">
+    <div>
+      <h1>Что такое видео</h1>
+      <p class="big muted">Кадры, FPS, сжатие, цвет — и свой видео-продакшн</p>
+      <p style="margin-top:22px">Разберём видео «по косточкам»: почему его можно сжать в 200 раз и почему компьютеру удобнее искать цвет в HSV.</p>
+    </div>
+    <div class="frame-box float" style="width:420px;height:300px"><canvas id="t-cv" width="420" height="300"></canvas></div>
+  </div>
+  <aside class="notes">Связка с прошлым: «Изображения мы уже умеем обрабатывать. Видео — это много изображений. Новое только одно — время».</aside>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-demo="three">
+  <span class="kicker">Крючок</span>
+  <h2>Что это?</h2>
+  <div class="row" style="justify-content:center;gap:18px">
+    <div class="frame-box"><canvas class="th" width="330" height="200"></canvas></div>
+    <div class="frame-box"><canvas class="th" width="330" height="200"></canvas></div>
+    <div class="frame-box"><canvas class="th" width="330" height="200"></canvas></div>
+  </div>
+  <p class="big center" style="margin-top:26px">Сколько отдельных картинок в <b>одной минуте</b> фильма?</p>
+  <div class="step card y center" style="align-self:center"><p style="margin:0"><b>24 × 60 = 1440</b> картинок. Фильм на 2 часа — больше <b>170 тысяч</b>.</p></div>
+  <aside class="notes"><b>5 мин.</b> Спросите «что это?» — скажут «мяч летит». Мы видим движение, хотя на экране три неподвижные картинки: мозг достраивает движение. Потом вопрос про минуту фильма: пусть каждый напишет число.</aside>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <span class="kicker">Блок 1 · Кадр и видео</span>
+  <h2>Видео — это стопка кадров</h2>
+  <div class="cols">
+    <div>
+      <p>Кадр — таблица чисел <b>высота × ширина × 3</b>. Видео — стопка таких таблиц:</p>
+      <div class="shape" style="margin:14px 0">(<span style="background:#ffe08a">T</span>, <span style="background:#ffd0d0">H</span>, <span style="background:#d6e6ff">W</span>, <span style="background:#d9f5e5">C</span>)</div>
+      <p>кадры × высота × ширина × каналы</p>
+      <div class="step card p"><p style="margin:0">10 секунд Full HD на 30 FPS:<br><code style="font-size:26px">(300, 1080, 1920, 3)</code></p></div>
+    </div>
+    <div>
+      <div class="card r"><p style="margin:0"><b>Ловушка:</b> говорят «1920 на 1080» — ширина первой. А в numpy <b>сначала высота</b>: <code>(1080, 1920, 3)</code>.</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>3 мин.</b> Нарисуйте на доске стопку листов со стрелкой «время».</aside>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-demo="flipbook">
+  <span class="kicker">FPS — кадры в секунду</span>
+  <h2>Кадры не знают своего времени</h2>
+  <div class="cols wide-left">
+    <div>
+      <div class="frame-box" style="width:560px;height:240px"><canvas id="fb-cv" width="560" height="240"></canvas></div>
+      <label class="ctl" style="margin-top:12px">FPS: <b id="fb-v">10</b><input type="range" id="fb-r" min="1" max="60" value="10"></label>
+    </div>
+    <div>
+      <p>время кадра <code>i</code> = <code>i / FPS</code><br>длительность = <code>кадров / FPS</code></p>
+      <table class="t" style="font-size:17px"><tr><th>FPS</th><th>Где</th></tr><tr><td>24</td><td>кино</td></tr><tr><td>25</td><td>ТВ (PAL)</td></tr><tr><td>30</td><td>камеры, YouTube</td></tr><tr><td>60</td><td>игры, спорт</td></tr><tr><td>120–240</td><td>slow motion</td></tr></table>
+    </div>
+  </div>
+  <div class="step card y" style="margin-top:14px"><p style="margin:0">60 кадров сохранили с FPS 30 и с FPS 10. Что изменится? → кадры те же, но <b>2 с против 6 с</b>: второе видео в 3 раза медленнее.</p></div>
+  <aside class="notes"><b>4 мин.</b> Slow motion: снимаем на 240, показываем на 30 — секунда растягивается на 8. Типичная ошибка: выкинули каждый второй кадр и сохранили с тем же FPS — видео стало в 2 раза короче и быстрее. Телефоны пишут с переменным FPS, OpenCV показывает среднее.</aside>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-demo="budget">
+  <span class="kicker">Сколько у нас есть времени?</span>
+  <h2>Бюджет кадра: 1000 / FPS мс</h2>
+  <p>30 FPS → <b>33 мс</b> на кадр, 60 FPS → <b>16 мс</b>. Не успели — кадры копятся, картинка отстаёт от реальности.</p>
+  <div style="margin-top:36px"><div class="budget" id="bg-bar"><div class="line" id="bg-line" data-t="33 мс"></div></div></div>
+  <div class="toggles" id="bg-tg"></div>
+  <p class="big" style="margin-top:20px">Реальная скорость: <span id="bg-fps"></span></p>
+  <aside class="notes"><b>2 мин.</b> Беспилотник, который видит дорогу с опозданием в секунду, опасен. Поэтому в видео-ML всегда считают не только точность, но и время на кадр.<br>→ <b>Ноутбук, части 1–2</b> (10 мин): кадр как массив, первое видео, эксперимент с FPS.</aside>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-demo="size">
+  <span class="kicker">Блок 2 · Размер и сжатие</span>
+  <h2>Посчитаем вместе</h2>
+  <div class="cols">
+    <div>
+      <div class="row" style="flex-wrap:wrap;gap:12px">
+        <select id="sz-res"><option value="640x480">640×480</option><option value="1280x720">1280×720</option><option value="1920x1080" selected>1920×1080</option><option value="3840x2160">3840×2160 (4K)</option></select>
+        <select id="sz-fps"><option>24</option><option selected>30</option><option>60</option></select>
+        <select id="sz-sec"><option value="1">1 секунда</option><option value="60" selected>1 минута</option><option value="7200">2 часа</option></select>
+      </div>
+      <p class="muted" style="margin-top:14px;font-family:var(--mono);font-size:20px" id="sz-formula"></p>
+      <div class="result-big" id="sz-out"></div>
+    </div>
+    <div>
+      <div class="card"><p style="margin:0">Кадр Full HD ≈ <b>6 МБ</b> · секунда ≈ <b>187 МБ</b><br>минута ≈ <b>11 ГБ</b> · фильм ≈ <b>1,3 ТБ</b></p></div>
+      <div class="step card y" style="margin-top:14px"><p style="margin:0">YouTube — меньше <b>1 МБ в секунду</b>. Сжатие ~в <b>200 раз</b>. Как?</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>3 мин.</b> Пусть посчитают на калькуляторе: 1920 × 1080 × 3 = 6 220 800 байт.</aside>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-demo="diff">
+  <span class="kicker">Почему видео сжимается</span>
+  <h2>Соседние кадры почти одинаковые</h2>
+  <div class="row" style="justify-content:center;gap:16px">
+    <div class="center"><div class="frame-box"><canvas id="df-a" width="320" height="210"></canvas></div><p style="margin-top:6px">кадр t</p></div>
+    <div style="font-size:50px;font-weight:900">−</div>
+    <div class="center"><div class="frame-box"><canvas id="df-b" width="320" height="210"></canvas></div><p style="margin-top:6px">кадр t+1</p></div>
+    <div style="font-size:50px;font-weight:900">=</div>
+    <div class="center"><div class="frame-box"><canvas id="df-c" width="320" height="210"></canvas></div><p style="margin-top:6px">разница</p></div>
+  </div>
+  <div class="cols" style="margin-top:8px">
+    <div class="card g"><p style="margin:0;font-size:22px"><b>I-кадр</b> хранится целиком, как JPEG. <b>P и B-кадры</b> — только «что сдвинулось и куда».</p></div>
+    <div class="step card r"><p style="margin:0;font-size:22px">Перемотка «прыгает» к ключевым кадрам. Повреждён ключевой кадр — «каша» из пикселей (datamoshing).</p></div>
+  </div>
+  <aside class="notes"><b>3 мин.</b> Аналогия: вместо того чтобы переписывать весь текст, пишем «то же самое, но на третьей строке вместо слова А слово Б».</aside>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-demo="noise">
+  <span class="kicker">Вопрос группе</span>
+  <h2>Какое видео сожмётся хуже всего?</h2>
+  <div class="row" style="justify-content:center;gap:30px">
+    <div class="center"><div class="frame-box"><canvas id="nz-a" width="380" height="250"></canvas></div><p style="margin-top:8px">мяч на ровном фоне</p></div>
+    <div class="center"><div class="frame-box"><canvas id="nz-b" width="380" height="250"></canvas></div><p style="margin-top:8px">белый шум</p></div>
+  </div>
+  <div class="step card y center" style="align-self:center;margin-top:14px"><p style="margin:0">Шум: каждый кадр не похож на прошлый — кодеку нечего переиспользовать. В жизни так ведут себя <b>вода, листва, конфетти, снег</b>.</p></div>
+  <aside class="notes"><b>2 мин.</b> В ноутбуке (часть 3) студенты проверят: шум сжимается в разы хуже мяча.</aside>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <span class="kicker">Путают постоянно</span>
+  <h2>Кодек и контейнер — разные вещи</h2>
+  <div class="cols">
+    <div class="card b"><div class="ico">📦</div><h3>Контейнер</h3><p style="font-size:22px">Коробка, расширение файла: <code>.mp4</code> <code>.avi</code> <code>.mkv</code> <code>.webm</code>. Внутри — видео, звук, субтитры, FPS.</p></div>
+    <div class="card g"><div class="ico">✉️</div><h3>Кодек</h3><p style="font-size:22px">Язык письма в коробке — способ сжатия: H.264, H.265, VP9, AV1, MJPEG.</p></div>
+  </div>
+  <pre class="py sm" style="margin-top:18px">
+cv2.VideoWriter_fourcc(*"MJPG")   # каждый кадр отдельно, как JPEG — файл большой
+cv2.VideoWriter_fourcc(*"mp4v")   # хранит разницу между кадрами — файл маленький
+  </pre>
+  <aside class="notes"><b>2 мин.</b> Плеер может открыть коробку, но не знать языка — тогда звук есть, а картинки нет.</aside>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <span class="kicker">Связь с ML</span>
+  <h2>Больше — лучше?</h2>
+  <div class="cols">
+    <div class="card r"><h3>Сжатие портит данные</h3><p style="font-size:22px">Квадратики и размытые края. Модель, обученная на чистых видео, хуже работает на записях камер наблюдения. Поэтому в датасеты добавляют «испорченные» примеры.</p></div>
+    <div class="card y"><h3>4K = в 4 раза больше работы</h3><p style="font-size:22px">Почти все модели уменьшают кадр до <b>224×224</b>, <b>320×320</b> или <b>640×640</b> и берут <b>8–16 кадров</b> из клипа. Компромисс: скорость против мелких деталей.</p></div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Вопрос «насколько уменьшить» — компромисс между скоростью и тем, разглядит ли модель мелкие объекты.<br>→ <b>Ноутбук, часть 3</b> (5 мин): сколько весит видео, шум против мяча.</aside>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <span class="kicker">Блок 3 · Как OpenCV читает видео</span>
+  <h2>Цикл, который будет во всех темах</h2>
+  <div class="flow">
+    <div class="box">Открыть<small>VideoCapture</small></div><span class="arr">→</span>
+    <div class="box">Прочитать кадр<small>cap.read()</small></div><span class="arr">→</span>
+    <div class="box">Обработать<small>ваш код</small></div><span class="arr">→</span>
+    <div class="box">Записать<small>VideoWriter</small></div><span class="arr">↺</span>
+  </div>
+  <div class="cols">
+    <div class="card"><p style="margin:0;font-size:22px">Источник: файл <code>"video.mp4"</code>, камера <code>0</code> или поток <code>rtsp://…</code> у камер наблюдения. Код обработки одинаковый.</p></div>
+    <div class="card y"><p style="margin:0;font-size:22px"><code>ok, frame = cap.read()</code>: в конце видео <code>ok</code> станет <code>False</code>. Каналы — <b>BGR</b>, для matplotlib переводим в RGB.</p></div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> В Colab нет камеры и окна: веб-камера пишется через браузер (кнопка в ноутбуке), видео можно загрузить файлом, есть демо. Для клавиш c и l, как в LXP, — скрипт video_production_local.py на компьютере колледжа.</aside>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-demo="shadow">
+  <span class="kicker">Видео-продакшн</span>
+  <h2>Зачем текст рисуют дважды</h2>
+  <div class="cols">
+    <div>
+      <div class="frame-box" style="width:540px;height:300px"><canvas id="sh-cv" width="540" height="300"></canvas></div>
+      <label class="ctl" style="margin-top:10px">Сдвиг тени: <b id="sh-v">2</b> px<input type="range" id="sh-r" min="0" max="6" value="2"></label>
+    </div>
+    <div>
+      <p>Белый текст пропадает на светлом фоне, чёрный — на тёмном. <b>Тень</b> — тот же текст тёмным цветом со сдвигом на 1–2 пикселя. Так сделаны субтитры в кино.</p>
+      <div class="card r"><p style="margin:0;font-size:21px">Шрифты OpenCV <code>FONT_HERSHEY_*</code> не знают кириллицу. Русский текст — через PIL (функция есть в ноутбуке).</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Подвигайте ползунок: при 0 текст теряется на светлом небе, при 2 — читается везде.</aside>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-demo="alpha">
+  <span class="kicker">Логотип с прозрачностью</span>
+  <h2>Смешиваем логотип и кадр</h2>
+  <div class="cols">
+    <div>
+      <div class="frame-box" style="width:540px;height:300px"><canvas id="al-cv" width="540" height="300"></canvas></div>
+      <label class="ctl" style="margin-top:10px">α = <b id="al-v">1.0</b><input type="range" id="al-r" min="0" max="100" value="100"></label>
+    </div>
+    <div>
+      <div class="formula">результат = α·логотип + (1 − α)·кадр</div>
+      <p style="margin-top:16px">α = 1 — логотип, α = 0 — кадр, 0.5 — полупрозрачно. Анимация — это α или позиция, которые меняются со временем <code>t = i / FPS</code>.</p>
+      <div class="card y"><p style="margin:0;font-size:21px"><b>Монтажный план вместо клавиш:</b> в Colab нет нажатий, поэтому «подпись с 1-й секунды, логотип с 2-й». Логика та же, что у переключателя.</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> У логотипа есть четвёртый канал — альфа. Формула применяется к каждому пикселю.<br>→ <b>Ноутбук, части 4–5</b> (15 мин): своё видео, подпись с тенью, логотип. Это КТ.</aside>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-demo="rgb">
+  <span class="kicker">Блок 4 · Цвет</span>
+  <h2>Проблема RGB: цвет и яркость перемешаны</h2>
+  <div class="cols">
+    <div class="row" style="align-items:flex-start">
+      <div class="sw" id="rg-sw"></div>
+      <div style="flex:1">
+        <label class="ctl">Свет: <b id="rg-lv">100%</b><input type="range" id="rg-r" min="20" max="100" value="100"></label>
+        <div class="vals" id="rg-vals"></div>
+      </div>
+    </div>
+    <div>
+      <p>Красный мяч на солнце: BGR = (40, 40, 220). Набежало облако — свет вдвое слабее.</p>
+      <div class="step card r"><p style="margin:0">Стало ≈ (20, 20, 110): <b>изменились все три числа</b>. Правило «R больше 180» потеряет мяч в тени.</p></div>
+      <div class="step card g" style="margin-top:12px"><p style="margin:0">А мяч остался красным. Нужна модель, где «какой цвет» и «насколько светло» — разные числа.</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>3 мин.</b> Спросите про облако до того, как двигать ползунок.</aside>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-demo="wheel">
+  <span class="kicker">HSV</span>
+  <h2>Оттенок отдельно от яркости</h2>
+  <div class="cols">
+    <canvas id="wh-cv" width="360" height="360" style="cursor:crosshair"></canvas>
+    <div>
+      <p><span class="tag" style="background:#ffe08a">H</span> оттенок — где на круге <span class="tag" style="background:#d9f5e5">S</span> насыщенность <span class="tag" style="background:#d6e6ff">V</span> яркость</p>
+      <div class="card" style="margin:10px 0"><div class="vals" id="wh-out">Наведите на круг</div></div>
+      <ul style="font-size:21px">
+        <li>H в OpenCV — <b>0–179</b> (градусы ÷ 2, чтобы влезть в байт)</li>
+        <li>Красный на обоих концах круга → <b>два диапазона</b></li>
+        <li>У серого и тёмного нет оттенка → в маску добавляют мин. S и V</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes"><b>3 мин.</b> Облако меняет в основном V, H почти не меняется. Зелёный 120° → в OpenCV 60.</aside>
+</section>
+
+<!-- 16 -->
+<section class="slide">
+  <span class="kicker">YUV</span>
+  <h2>Как цвет хранится в самом видео</h2>
+  <div class="cols">
+    <div>
+      <p>Глаз сильнее замечает <b>яркость</b>, чем цвет. Кадр переводят в YUV: <b>Y</b> — яркость, <b>U, V</b> — цветовые добавки.</p>
+      <p>Яркость хранят полностью, а цвет — в половинном разрешении (<b>4:2:0</b>). Цветовых данных в 4 раза меньше, глаз почти не видит разницы.</p>
+    </div>
+    <div>
+      <div class="formula">Y = 0.299·R + 0.587·G + 0.114·B</div>
+      <p style="margin-top:14px">Зелёный весит больше всех — к нему глаз чувствительнее всего. Это и есть перевод в серый.</p>
+      <div class="card p"><p style="margin:0;font-size:21px">Дальше: в раскрашивании ч/б кино модель Lab — сеть получает яркость и угадывает цвет.</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Почти всё видео на телефоне и YouTube хранится в YUV 4:2:0.</aside>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <span class="kicker">Связь с реальным миром</span>
+  <h2>Маска по цвету: где работает и где нет</h2>
+  <div class="cards3">
+    <div class="card g"><div class="ico">🎬</div><h3>Хромакей</h3><p style="font-size:21px">Зелёный экран в кино и у стримеров — это маска по H.</p></div>
+    <div class="card y"><div class="ico">🍎</div><h3>Конвейер</h3><p style="font-size:21px">Сортировка фруктов и деталей по цвету.</p></div>
+    <div class="card r"><div class="ico">👕</div><h3>Ограничение</h3><p style="font-size:21px">Маска находит <b>пиксели</b>, а не <b>предметы</b>: зелёный мяч и зелёная футболка для неё одинаковы.</p></div>
+  </div>
+  <aside class="notes"><b>1 мин.</b> Это мост к следующим темам: детекция объектов без нейросетей, а затем с нейросетями. «Зачем HSV, если есть нейросети?» — маска работает за доли миллисекунды без обучения.<br>→ <b>Ноутбук, часть 6</b> (8 мин): каналы, «облако», маска по цвету.</aside>
+</section>
+
+<!-- 18 -->
+<section class="slide">
+  <span class="kicker">Блок 5 · Видео в PyTorch</span>
+  <h2>Видео — это тензор (T, C, H, W)</h2>
+  <pre class="py sm">
+x = np.stack(frames)               # (T, H, W, 3), uint8, 0–255
+x = torch.from_numpy(x)
+x = x.permute(0, 3, 1, 2)          # (T, 3, H, W): каналы вперёд #!
+x = x.float() / 255                # значения 0–1
+x = x[:, [2, 1, 0]]                # BGR → RGB
+  </pre>
+  <div class="cols" style="margin-top:16px">
+    <div class="card y"><p style="margin:0;font-size:21px"><code>float32</code> — 4 байта на число, <code>uint8</code> — 1. Тензор в 4 раза больше: 10 с Full HD ≈ <b>7,5 ГБ</b>.</p></div>
+    <div class="card"><p style="margin:0;font-size:21px">Несколько видео для 3D-сетей: <code>(B, C, T, H, W)</code>.</p></div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Ещё одна причина уменьшать кадры.</aside>
+</section>
+
+<!-- 19 -->
+<section class="slide">
+  <span class="kicker">Одна операция — все кадры</span>
+  <h2>Что сделаем в ноутбуке</h2>
+  <div class="cols">
+    <ol style="font-size:23px;line-height:1.5;margin:0;padding-left:28px">
+      <li><b>Серый</b> для всех кадров — одной строкой</li>
+      <li><b>Детектор движения</b>: <code>|кадр[t+1] − кадр[t]|</code></li>
+      <li><b>Ложная тревога</b> от облака: свет поменял все пиксели</li>
+      <li><b>Фон из медианы</b> по времени — люди исчезают</li>
+      <li><b>Свёртка Собеля</b> на все кадры через <code>F.conv2d</code></li>
+    </ol>
+    <div>
+      <div class="card p"><p style="margin:0;font-size:21px">Нейросеть на видео делает ровно это, только веса фильтров не задаются руками, а <b>подбираются при обучении</b>.</p></div>
+      <div class="card r" style="margin-top:14px"><p style="margin:0;font-size:21px">Честно: на процессоре простой фильтр в OpenCV часто <b>быстрее</b> PyTorch. PyTorch выигрывает на видеокарте и в нейросетях.</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Медиана — так убирают туристов со снимков достопримечательностей. Уличные камеры ночью «видят движение» от фар и теней.<br>→ <b>Ноутбук, часть 7</b> (5 мин). Отстаём — переносим её в начало следующей пары.</aside>
+</section>
+
+<!-- 20 -->
+<section class="slide">
+  <span class="kicker">Итог</span>
+  <h2>Два подхода в видео-ML</h2>
+  <div class="cols">
+    <div class="card b"><h3>Покадровый</h3><p style="font-size:22px">Модель для картинок на каждом кадре. Просто: лица, объекты, сегментация. Минус: модель не помнит прошлый кадр, рамки «дрожат».</p></div>
+    <div class="card g"><h3>Временной</h3><p style="font-size:22px">Модель видит несколько кадров сразу (3D-свёртки, видео-трансформеры). Нужен, когда смысл в движении: «падает», «гол», «жест».</p></div>
+  </div>
+  <p class="big center" style="margin-top:20px">Один кадр не отличит «садится» от «встаёт».</p>
+  <aside class="notes">В этом разделе мы идём от первого подхода ко второму.</aside>
+</section>
+
+<!-- 21 -->
+<section class="slide">
+  <span class="kicker">КТ · 2 балла LXP</span>
+  <h2>Что сдаём</h2>
+  <table class="t">
+    <tr><th>Задание LXP</th><th>Что показать</th><th>Балл</th></tr>
+    <tr><td><b>«Свой видео-продакшн»</b></td><td>Видео со своей подписью и логотипом (усложнение — анимированный). Появление по монтажному плану или по клавишам в локальном скрипте</td><td>1</td></tr>
+    <tr><td><b>«Время с тенью»</b></td><td>Время на видео с тенью, шрифт и цвета — свои, не как в примере</td><td>1</td></tr>
+  </table>
+  <div class="cols" style="margin-top:20px">
+    <div class="card y"><p style="margin:0;font-size:21px">Файл <code>results/my_production.mp4</code> (часть 5 ноутбука) + ответы в ячейках «Мой ответ».</p></div>
+    <div class="card"><p style="margin:0;font-size:21px">Клавиши <code>c</code>, <code>l</code>, <code>t</code>, <code>r</code> вживую — скрипт <code>video_production_local.py</code> на компьютере.</p></div>
+  </div>
+  <aside class="notes">Ответы «что я предсказал / что получилось / почему» баллов не дают, но по ним видно, кто понял, а кто нажал «запустить всё».</aside>
+</section>
+
+<!-- 22 -->
+<section class="slide center" style="justify-content:center;align-items:center">
+  <div class="huge pop">Практика и квиз 🎯</div>
+  <p class="big" style="margin-top:24px">Ноутбук: <a data-site="02-video-production/lesson.ipynb" target="_blank">открыть в Colab</a></p>
+  <p class="big">Квиз: <a data-site="quiz" target="_blank" style="font-family:var(--mono)">сайт квиза</a> → код с экрана</p>
+  <aside class="notes">Квиз в списке ведущего — «Пара 2. Что такое видео».</aside>
+</section>
+
+</div>
+<script src="../shared/slides.js"></script>
+<script>
+'use strict';
+const INK = '#1F1B2E';
+function ballPos(t, w, h) {
+  const u = (t % 3) / 3;
+  return { x: w * 0.15 + w * 0.7 * (u < 0.5 ? u * 2 : 2 - u * 2), y: h * 0.72 - Math.abs(Math.sin(t * Math.PI * 1.3)) * h * 0.45, r: h * 0.09 };
+}
+function scene(ctx, w, h, t) {
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#9fd3ff'); g.addColorStop(1, '#e8f6ff');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#FFC93C'; ctx.beginPath(); ctx.arc(w * 0.85, h * 0.2, h * 0.09, 0, 7); ctx.fill();
+  ctx.fillStyle = '#3DC47E'; ctx.beginPath(); ctx.ellipse(w * 0.25, h, w * 0.45, h * 0.35, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#FF8FB1'; ctx.fillRect(w * 0.08, h * 0.55, w * 0.16, h * 0.22);
+  const p = ballPos(t, w, h);
+  ctx.fillStyle = '#FF6B6B'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); ctx.stroke();
+}
+function hsv(r, g, b) {
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) { if (mx === r) h = 60 * (((g - b) / d) % 6); else if (mx === g) h = 60 * ((b - r) / d + 2); else h = 60 * ((r - g) / d + 4); }
+  if (h < 0) h += 360;
+  return [Math.round(h / 2), mx ? Math.round(d / mx * 255) : 0, mx];
+}
+function hsvToRgb(h2, s, v) {
+  const h = h2 * 2, S = s / 255, V = v / 255, c = V * S, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = V - c;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [(r + m) * 255, (g + m) * 255, (b + m) * 255].map(Math.round);
+}
+
+Deck.demos.title = () => { const c = document.getElementById('t-cv'), x = c.getContext('2d'); return Deck.loop(t => scene(x, 420, 300, t / 1000)); };
+
+Deck.demos.three = slide => {
+  slide.querySelectorAll('canvas.th').forEach((c, i) => scene(c.getContext('2d'), 330, 200, 0.12 + i * 0.5));
+};
+
+Deck.demos.flipbook = () => {
+  const c = document.getElementById('fb-cv'), ctx = c.getContext('2d'), r = document.getElementById('fb-r'), v = document.getElementById('fb-v');
+  r.oninput = () => (v.textContent = r.value);
+  return Deck.loop(now => {
+    const fps = +r.value, frame = Math.floor(now / 1000 * fps);
+    scene(ctx, 560, 240, frame / fps);
+    ctx.fillStyle = 'rgba(31,27,46,0.8)'; ctx.fillRect(10, 10, 260, 34);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Consolas'; ctx.fillText(`кадр ${frame % 1000} · t = ${(frame / fps % 100).toFixed(2)} с`, 20, 33);
+  });
+};
+
+Deck.demos.budget = () => {
+  const steps = [
+    { n: 'Прочитать кадр', ms: 4, c: '#A0E7FF', on: true }, { n: 'Подпись и логотип', ms: 3, c: '#d9f5e5', on: true },
+    { n: 'Маска HSV', ms: 3, c: '#FFC93C', on: false }, { n: 'Детектор движения', ms: 5, c: '#FF8FB1', on: false },
+    { n: 'Нейросеть на процессоре', ms: 60, c: '#FF6B6B', on: false }, { n: 'Записать кадр', ms: 4, c: '#ece9ff', on: true },
+  ];
+  const bar = document.getElementById('bg-bar'), tg = document.getElementById('bg-tg'), line = document.getElementById('bg-line'), scale = 1136 / 100;
+  line.style.left = (1000 / 30) * scale + 'px';
+  tg.innerHTML = steps.map((s, i) => `<button class="btn ${s.on ? 'on' : ''}" data-i="${i}"><span>${s.n}</span><b>${s.ms} мс</b></button>`).join('');
+  function upd() {
+    bar.querySelectorAll('.seg').forEach(x => x.remove());
+    let sum = 0;
+    steps.forEach(s => { if (!s.on) return; const seg = document.createElement('div'); seg.className = 'seg'; seg.style.width = Math.min(s.ms, Math.max(0, 100 - sum)) * scale + 'px'; seg.style.background = s.c; seg.textContent = s.ms >= 6 ? s.n : ''; bar.insertBefore(seg, line); sum += s.ms; });
+    document.getElementById('bg-fps').innerHTML = `<b style="color:${sum > 33.4 ? 'var(--bad)' : 'var(--ok)'}">${sum} мс → ${Math.min(30, 1000 / sum).toFixed(0)} FPS</b>${sum > 33.4 ? ' — отстаём 🐢' : ' — успеваем ✅'}`;
+  }
+  tg.onclick = e => { const b = e.target.closest('[data-i]'); if (!b) return; const s = steps[+b.dataset.i]; s.on = !s.on; b.classList.toggle('on', s.on); upd(); };
+  upd();
+};
+
+Deck.demos.size = () => {
+  const res = document.getElementById('sz-res'), fps = document.getElementById('sz-fps'), sec = document.getElementById('sz-sec');
+  function upd() {
+    const [w, h] = res.value.split('x').map(Number), f = +fps.value, s = +sec.value, bytes = w * h * 3 * f * s;
+    document.getElementById('sz-formula').textContent = `${w} × ${h} × 3 × ${f} × ${s}`;
+    const tb = bytes / 1024 ** 4, gb = bytes / 1024 ** 3;
+    document.getElementById('sz-out').textContent = tb >= 1 ? tb.toFixed(1).replace('.', ',') + ' ТБ' : gb >= 1 ? gb.toFixed(1).replace('.', ',') + ' ГБ' : Math.round(bytes / 1024 ** 2) + ' МБ';
+  }
+  [res, fps, sec].forEach(el => (el.onchange = upd)); upd();
+};
+
+Deck.demos.diff = () => {
+  const a = document.getElementById('df-a').getContext('2d', { willReadFrequently: true }), b = document.getElementById('df-b').getContext('2d', { willReadFrequently: true }), c = document.getElementById('df-c').getContext('2d');
+  const W = 320, H = 210;
+  return Deck.loop(now => {
+    const t = now / 1000 * 0.6;
+    scene(a, W, H, t); scene(b, W, H, t + 1 / 12);
+    const da = a.getImageData(0, 0, W, H).data, db = b.getImageData(0, 0, W, H).data, out = c.createImageData(W, H), o = out.data;
+    for (let i = 0; i < o.length; i += 4) { const d = Math.min(255, (Math.abs(db[i] - da[i]) + Math.abs(db[i + 1] - da[i + 1]) + Math.abs(db[i + 2] - da[i + 2])) * 2); o[i] = o[i + 1] = o[i + 2] = d; o[i + 3] = 255; }
+    c.putImageData(out, 0, 0);
+  });
+};
+
+Deck.demos.noise = () => {
+  const a = document.getElementById('nz-a').getContext('2d'), b = document.getElementById('nz-b').getContext('2d');
+  const img = b.createImageData(380, 250);
+  return Deck.loop(now => {
+    a.fillStyle = '#d7dde8'; a.fillRect(0, 0, 380, 250);
+    const p = ballPos(now / 1000, 380, 250); a.fillStyle = '#FF6B6B'; a.strokeStyle = INK; a.lineWidth = 3; a.beginPath(); a.arc(p.x, p.y, p.r, 0, 7); a.fill(); a.stroke();
+    for (let i = 0; i < img.data.length; i += 4) { const v = Math.random() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+    b.putImageData(img, 0, 0);
+  });
+};
+
+Deck.demos.shadow = () => {
+  const c = document.getElementById('sh-cv'), ctx = c.getContext('2d'), r = document.getElementById('sh-r'), v = document.getElementById('sh-v');
+  return Deck.loop(now => {
+    scene(ctx, 540, 300, now / 1000);
+    const s = +r.value; v.textContent = s;
+    const t = new Date(now).toISOString().slice(14, 19);
+    ctx.font = 'bold 44px Consolas';
+    if (s) { ctx.fillStyle = '#1F1B2E'; ctx.fillText(t, 20 + s, 60 + s); }
+    ctx.fillStyle = '#fff'; ctx.fillText(t, 20, 60);
+    ctx.font = 'bold 30px Segoe UI';
+    if (s) { ctx.fillStyle = '#1F1B2E'; ctx.fillText('Иван Иванов · ML', 20 + s, 270 + s); }
+    ctx.fillStyle = '#fff'; ctx.fillText('Иван Иванов · ML', 20, 270);
+  });
+};
+
+Deck.demos.alpha = () => {
+  const c = document.getElementById('al-cv'), ctx = c.getContext('2d'), r = document.getElementById('al-r'), v = document.getElementById('al-v');
+  return Deck.loop(now => {
+    scene(ctx, 540, 300, now / 1000);
+    const a = r.value / 100; v.textContent = a.toFixed(2);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#E67814'; ctx.beginPath(); ctx.arc(470, 70, 50, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 34px Segoe UI'; ctx.fillText('ML', 446, 82);
+    ctx.globalAlpha = 1;
+  });
+};
+
+Deck.demos.rgb = () => {
+  const r = document.getElementById('rg-r'), sw = document.getElementById('rg-sw'), out = document.getElementById('rg-vals');
+  const base = [220, 40, 40];
+  function upd() {
+    const k = r.value / 100, [R, G, B] = base.map(x => Math.round(x * k)), [H, S, V] = hsv(R, G, B);
+    document.getElementById('rg-lv').textContent = r.value + '%';
+    sw.style.background = `rgb(${R},${G},${B})`;
+    out.innerHTML = `B G R = <span class="${k < 1 ? 'chg' : ''}">${B}, ${G}, ${R}</span><br>H = <span class="same">${H}</span> &nbsp; S = ${S} &nbsp; V = <span class="${k < 1 ? 'chg' : ''}">${V}</span>`;
+  }
+  r.oninput = upd; upd();
+};
+
+Deck.demos.wheel = () => {
+  const c = document.getElementById('wh-cv'), ctx = c.getContext('2d'), N = 360, R = 170, cx = 180, cy = 180;
+  const img = ctx.createImageData(N, N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const d = Math.hypot(x - cx, y - cy), i = (y * N + x) * 4;
+    if (d > R) continue;
+    let ang = Math.atan2(-(y - cy), x - cx) * 180 / Math.PI; if (ang < 0) ang += 360;
+    const [rr, gg, bb] = hsvToRgb(ang / 2, d / R * 255, 255);
+    img.data[i] = rr; img.data[i + 1] = gg; img.data[i + 2] = bb; img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+  c.onpointermove = e => {
+    const b = c.getBoundingClientRect(), x = (e.clientX - b.left) * N / b.width, y = (e.clientY - b.top) * N / b.height, d = Math.hypot(x - cx, y - cy);
+    if (d > R) return;
+    let ang = Math.atan2(-(y - cy), x - cx) * 180 / Math.PI; if (ang < 0) ang += 360;
+    const H = Math.round(ang / 2), S = Math.round(d / R * 255), [rr, gg, bb] = hsvToRgb(H, S, 255);
+    document.getElementById('wh-out').innerHTML = `<span style="display:inline-block;width:26px;height:26px;border:3px solid ${INK};border-radius:8px;vertical-align:middle;background:rgb(${rr},${gg},${bb})"></span> H = ${H} · S = ${S} · V = 255`;
+  };
+};
+</script>
+</body>
+</html>

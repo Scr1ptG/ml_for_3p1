@@ -11,6 +11,7 @@
 | Папка | Тема | Презентация | Практика в Colab |
 |---|---|---|---|
 | [`01-video`](01-video) | Видео и OpenCV: картинка → кадр → видео | [slides](https://scr1ptg.github.io/ml_for_3p1/01-video/slides.html) | [открыть в Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/01-video/lesson.ipynb) |
+| [`02-video-production`](02-video-production) | Что такое видео: кадры, FPS, сжатие, цвет + свой видео-продакшн | [slides](https://scr1ptg.github.io/ml_for_3p1/02-video-production/slides.html) | [открыть в Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/02-video-production/lesson.ipynb) |
 
 ## Устройство репозитория
 * `quiz/` — сайт квиза (общий для всех уроков). Формат вопросов — в [quiz/README.md](quiz/README.md).
