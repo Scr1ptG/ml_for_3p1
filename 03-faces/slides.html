@@ -98,7 +98,7 @@ for (x, y, w, h) in faces:                            # лиц может быт
     cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 3)
   </pre>
   <div class="cols" style="margin-top:16px">
-    <div class="card"><p style="margin:0;font-size:21px"><code>.xml</code> — уже обученный детектор. Он ставится вместе с OpenCV, качать ничего не надо.</p></div>
+    <div class="card"><p style="margin:0;font-size:21px"><code>.xml</code> — уже обученный детектор. Он ставится вместе с OpenCV 4 (в OpenCV 5 его убрали — ноутбук сам поставит версию 4).</p></div>
     <div class="card y"><p style="margin:0;font-size:21px"><code>faces</code> — список прямоугольников. <code>len(faces)</code> — сколько лиц нашлось.</p></div>
   </div>
   <aside class="notes"><b>2 мин.</b> Это задания 3–6 ноутбука.</aside>
