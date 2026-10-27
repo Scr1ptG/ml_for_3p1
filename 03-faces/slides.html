@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тема 3 · Лица на видео</title>
+<link rel="stylesheet" href="../shared/slides.css">
+<style>
+  .flow { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 10px 0 22px; flex-wrap: wrap; }
+  .flow .box { border: 3px solid var(--ink); border-radius: 16px; padding: 12px 16px; background: #fff; box-shadow: var(--sh); font-weight: 900; font-size: 20px; text-align: center; min-width: 140px; }
+  .flow .box small { display: block; font-weight: 600; color: var(--muted); font-size: 15px; font-family: var(--mono); }
+  .flow .arr { font-size: 30px; font-weight: 900; }
+  .flow .box.no { background: #ffd9d9; } .flow .box.yes { background: #dff7ea; }
+  table.t { border-collapse: collapse; font-size: 22px; width: 100%; background: #fff; border: 3px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: var(--sh); }
+  table.t th, table.t td { padding: 9px 14px; border-bottom: 2px solid var(--soft); text-align: left; }
+  table.t th { background: #fff3c4; }
+  .cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .ico { font-size: 48px; }
+  .val { font-family: var(--mono); font-size: 26px; font-weight: 900; }
+  .stage { display: inline-block; padding: 4px 12px; border: 3px solid var(--ink); border-radius: 10px; font-weight: 900; margin: 3px; background: #fff; transition: background 0.2s; }
+  .stage.pass { background: #3DC47E; color: #fff; } .stage.fail { background: #FF6B6B; color: #fff; }
+  .xy { font-family: var(--mono); font-size: 30px; font-weight: 900; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- 1 -->
+<section class="slide" data-demo="title">
+  <span class="kicker">Раздел «Видео» · Тема 3</span>
+  <div class="cols wide-left grow" style="align-items:center">
+    <div>
+      <h1>Находим лица на видео</h1>
+      <p class="big muted">Каскад Хаара в OpenCV: рамка, вырезать лицо, много лиц сразу</p>
+      <p style="margin-top:22px">Телефон рисует рамку вокруг лица ещё до того, как вы нажали «снять». Сегодня сделаем так же — 4 строчками кода.</p>
+    </div>
+    <div class="frame-box float" style="width:420px;height:300px"><canvas id="t-cv" width="420" height="300"></canvas></div>
+  </div>
+  <aside class="notes">Спросите: «Где вы видели рамку вокруг лица?» — камера телефона, маски в Instagram/TikTok, турникеты, Zoom с размытием фона.</aside>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <span class="kicker">Связь с темой 2</span>
+  <h2>Любой детектор отвечает «где»: прямоугольник</h2>
+  <div class="cols">
+    <div>
+      <p class="xy">(x, y, w, h)</p>
+      <p><code>x, y</code> — левый верхний угол, <code>w</code> — ширина, <code>h</code> — высота. Правый нижний угол — <code>(x + w, y + h)</code>.</p>
+      <div class="card y"><p style="margin:0;font-size:22px">На прошлой теме прямоугольник давала <b>маска по цвету</b>: <code>inRange</code> → <code>findContours</code> → <code>boundingRect</code>.</p></div>
+    </div>
+    <div>
+      <div class="card r"><h3>А лицо по цвету не найти</h3><p style="font-size:22px;margin:0">Кожа бывает разной, свет меняется, а стена или рука того же цвета. Нужен не цвет, а <b>узор</b>: где темно, где светло.</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>3 мин.</b> Мост от коробочки к лицу: результат тот же — x, y, w, h, а способ найти другой.</aside>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-demo="haar">
+  <span class="kicker">Признаки Хаара</span>
+  <h2>Глаза темнее щёк</h2>
+  <div class="cols">
+    <div class="frame-box" style="width:520px;height:400px"><canvas id="hr-cv" width="520" height="400" style="cursor:move"></canvas></div>
+    <div>
+      <p>Признак — два прямоугольника: <b>чёрный</b> и <b>белый</b>. Считаем: средняя яркость белой части минус средняя яркость чёрной.</p>
+      <div class="card"><p style="margin:0">Разница: <span class="val" id="hr-v">0</span></p><p class="muted" style="margin:6px 0 0;font-size:20px" id="hr-t">Перетащите рамку на глаза</p></div>
+      <p style="margin-top:14px;font-size:22px">На глазах разница большая, на стене — около нуля. Таких признаков в файле детектора <b>тысячи</b>.</p>
+    </div>
+  </div>
+  <aside class="notes"><b>4 мин.</b> Пусть кто-то выйдет и потаскает рамку. Покажите: на лбу и на фоне разница маленькая, на полосе глаз — большая. Это и есть один «слабый» признак.</aside>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-demo="cascade">
+  <span class="kicker">Почему «каскад»</span>
+  <h2>Скользящее окно и ступени проверок</h2>
+  <div class="cols">
+    <div class="frame-box" style="width:520px;height:360px"><canvas id="cs-cv" width="520" height="360"></canvas></div>
+    <div>
+      <p>Окно ползёт по кадру, потом кадр уменьшается и окно ползёт снова — так находятся и большие, и маленькие лица.</p>
+      <div id="cs-st" style="margin:10px 0"></div>
+      <p style="font-size:22px">Не прошло ступень — дальше не проверяем. <b>Почти все окна отсеиваются на первой ступени</b>, поэтому детектор успевает за 33 мс на кадр.</p>
+    </div>
+  </div>
+  <aside class="notes"><b>3 мин.</b> Сравнение: охранник сначала смотрит «человек ли это вообще», и только потом проверяет пропуск. Viola–Jones, 2001 год — первый детектор лиц, который работал в реальном времени.</aside>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <span class="kicker">Код</span>
+  <h2>Четыре строчки</h2>
+  <pre class="py">
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)          # детектору нужна яркость, не цвет
+faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)   #!
+for (x, y, w, h) in faces:                            # лиц может быть несколько
+    cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 3)
+  </pre>
+  <div class="cols" style="margin-top:16px">
+    <div class="card"><p style="margin:0;font-size:21px"><code>.xml</code> — уже обученный детектор. Он ставится вместе с OpenCV, качать ничего не надо.</p></div>
+    <div class="card y"><p style="margin:0;font-size:21px"><code>faces</code> — список прямоугольников. <code>len(faces)</code> — сколько лиц нашлось.</p></div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Это задания 3–6 ноутбука.</aside>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-demo="neighbors">
+  <span class="kicker">Параметр minNeighbors</span>
+  <h2>Сколько срабатываний нужно, чтобы поверить</h2>
+  <div class="cols">
+    <div>
+      <div class="frame-box" style="width:520px;height:340px"><canvas id="nb-cv" width="520" height="340"></canvas></div>
+      <label class="ctl" style="margin-top:10px">minNeighbors = <b id="nb-v">0</b><input type="range" id="nb-r" min="0" max="10" value="0"></label>
+    </div>
+    <div>
+      <p>Вокруг настоящего лица детектор срабатывает <b>много раз</b> подряд. Случайный узор на фоне — один-два раза.</p>
+      <div class="card"><p style="margin:0">Рамок: <span class="val" id="nb-n"></span></p></div>
+      <ul style="font-size:21px;margin-top:12px">
+        <li><b>0</b> — все сырые срабатывания (на фото Лены их 159)</li>
+        <li><b>1–2</b> — появляются ложные «лица»</li>
+        <li><b>5</b> — обычное значение</li>
+        <li>слишком много — теряем настоящие лица</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes"><b>3 мин.</b> В ноутбуке после задания 9 есть этот же эксперимент на «групповом фото»: при minNeighbors = 1 находится 4 лица вместо 3.</aside>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <span class="kicker">Ловушка темы</span>
+  <h2>Вырезать лицо: сначала y</h2>
+  <pre class="py">
+cv2.rectangle(img, (x, y), (x + w, y + h), ...)   # точки: (x, y)
+face = img[y:y + h, x:x + w]                     # срез: сначала y  #!
+face200 = cv2.resize(face, (200, 200))           # resize: (ширина, высота)
+  </pre>
+  <div class="cols" style="margin-top:18px">
+    <div class="card r"><p style="margin:0;font-size:22px">Картинка — таблица: сначала <b>строки</b> (это y), потом <b>столбцы</b> (x). А функции рисования принимают точки как <b>(x, y)</b>.</p></div>
+    <div class="step card y"><p style="margin:0;font-size:22px">Перепутали — вырежется не лицо, а кусок стены или вообще пустой массив.</p></div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Та же ловушка, что в уроке 1 с img[y, x]. Повторите вслух.</aside>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <span class="kicker">Лица на видео</span>
+  <h2>Тот же код — в цикле по кадрам</h2>
+  <div class="flow">
+    <div class="box">Кадр<small>cap.read()</small></div><span class="arr">→</span>
+    <div class="box">Серый<small>cvtColor</small></div><span class="arr">→</span>
+    <div class="box">Лица<small>detectMultiScale</small></div><span class="arr">→</span>
+    <div class="box">Вырезать<small>img[y:y+h, x:x+w]</small></div><span class="arr">→</span>
+    <div class="box">200×200<small>resize</small></div><span class="arr">→</span>
+    <div class="box">Записать<small>out.write</small></div>
+  </div>
+  <div class="cols">
+    <div class="card r"><p style="margin:0;font-size:22px"><b>Все кадры видео — одного размера.</b> Лица на разных кадрах разные, поэтому каждое приводим к 200×200. Иначе файл не запишется или будет весить 0 КБ.</p></div>
+    <div class="card"><p style="margin:0;font-size:22px">Папка для файлов: <code>os.makedirs("video", exist_ok=True)</code>. В конце — <code>out.release()</code>.</p></div>
+  </div>
+  <aside class="notes"><b>2 мин.</b> Это ровно КТ 1 в LXP: «записать в папку video только вырезанные лица». Задания 10–12 ноутбука.</aside>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <span class="kicker">Честно о детекторе</span>
+  <h2>Где каскад Хаара ошибается</h2>
+  <div class="cards3">
+    <div class="card r"><div class="ico">↪️</div><h3>Профиль и наклон</h3><p style="font-size:21px">Обучен на лицах анфас. Повернулись боком — лица «нет».</p></div>
+    <div class="card y"><div class="ico">🌑</div><h3>Свет и очки</h3><p style="font-size:21px">Темнота, блик, тёмные очки, маска ломают узор «глаза темнее щёк».</p></div>
+    <div class="card b"><div class="ico">🧱</div><h3>Ложные лица</h3><p style="font-size:21px">Узор на обоях или розетка иногда похожи на лицо.</p></div>
+  </div>
+  <div class="card p" style="margin-top:20px"><p style="margin:0;font-size:22px"><b>Связь с ML:</b> здесь признаки «глаза темнее щёк» придумали люди. В нейросети свёрточные фильтры <b>учатся сами</b> — поэтому нейросетевые детекторы видят лица и в профиль.</p></div>
+  <aside class="notes"><b>2 мин.</b> Мост к PyTorch: свёртка Собеля из прошлой темы — фильтр, заданный руками; в CNN веса фильтров подбирает обучение.</aside>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <span class="kicker">Важно различать</span>
+  <h2>Обнаружение ≠ распознавание</h2>
+  <div class="cols">
+    <div class="card g"><h3>Обнаружение (detection)</h3><p style="font-size:22px">«Здесь есть лицо» — рамка. Не знает, <b>чьё</b> лицо. Это мы и делаем сегодня.</p></div>
+    <div class="card r"><h3>Распознавание (recognition)</h3><p style="font-size:22px">«Это Иван Иванов». Нужна база лиц и отдельная модель. Это персональные данные: снимать и хранить чужие лица без согласия нельзя.</p></div>
+  </div>
+  <p class="big center" style="margin-top:22px">Для КТ снимайте себя и тех, кто согласен 🙂</p>
+  <aside class="notes"><b>1 мин.</b> Короткий разговор про этику. Для КТ 2 можно использовать фото на телефоне вместо второго человека.</aside>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <span class="kicker">КТ · 2 балла LXP</span>
+  <h2>Что сдаём</h2>
+  <table class="t">
+    <tr><th>Задание LXP</th><th>Что показать</th><th>Балл</th></tr>
+    <tr><td><b>«Записать в папку video только вырезанные лица»</b></td><td>Своё видео → <code>video/my_faces.mp4</code>: только ваше лицо 200×200</td><td>1</td></tr>
+    <tr><td><b>«Распознавание сразу нескольких лиц»</b></td><td>2 и больше лиц в кадре, рамки у всех и надпись <code>Faces: N</code> → <code>video/my_multi.mp4</code></td><td>1</td></tr>
+  </table>
+  <div class="cols" style="margin-top:20px">
+    <div class="card y"><p style="margin:0;font-size:21px">В ноутбуке: часть 5. Видео с веб-камеры через браузер или своим файлом. Нет камеры — учебное видео.</p></div>
+    <div class="card"><p style="margin:0;font-size:21px">Вживую на компьютере: <code>faces_local.py</code>, клавиша <code>r</code> — запись лиц, <code>m</code> — все лица, <code>q</code> — выход.</p></div>
+  </div>
+  <aside class="notes">Сдают ссылку на ноутбук и два файла из папки video.</aside>
+</section>
+
+<!-- 12 -->
+<section class="slide center" style="justify-content:center;align-items:center">
+  <div class="huge pop">Практика и квиз 🎯</div>
+  <p class="big" style="margin-top:24px">Ноутбук: <a data-site="03-faces/lesson.ipynb" target="_blank">открыть в Colab</a></p>
+  <p class="big">Квиз: <a data-site="quiz" target="_blank" style="font-family:var(--mono)">сайт квиза</a> → код с экрана</p>
+  <aside class="notes">Квиз в списке ведущего — «Тема 3. Лица на видео».</aside>
+</section>
+
+</div>
+<script src="../shared/slides.js"></script>
+<script>
+'use strict';
+const INK = '#1F1B2E';
+// Мультяшное лицо: светлая кожа, тёмные глаза и брови, светлая переносица
+function face(ctx, cx, cy, s, tilt = 0) {
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(tilt); ctx.scale(s, s);
+  ctx.fillStyle = '#5a3d2b'; ctx.beginPath(); ctx.ellipse(0, -18, 62, 66, 0, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#f2c9a0'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.ellipse(0, 0, 55, 68, 0, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#4a3020'; ctx.fillRect(-40, -26, 28, 6); ctx.fillRect(12, -26, 28, 6);
+  ctx.fillStyle = '#2b1d14'; ctx.beginPath(); ctx.ellipse(-24, -10, 11, 8, 0, 0, 7); ctx.ellipse(24, -10, 11, 8, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#b07a52'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(-5, 18); ctx.lineTo(4, 20); ctx.stroke();
+  ctx.strokeStyle = '#9b3b3b'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 30, 16, 0.2, Math.PI - 0.2); ctx.stroke();
+  ctx.restore();
+}
+function room(ctx, w, h) {
+  const g = ctx.createLinearGradient(0, 0, w, 0); g.addColorStop(0, '#cfd8e6'); g.addColorStop(1, '#e9eef5');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#b9c4d6'; ctx.fillRect(0, h * 0.8, w, h * 0.2);
+  ctx.fillStyle = '#8fc1ff'; ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.fillRect(w * 0.07, h * 0.12, w * 0.18, h * 0.3); ctx.strokeRect(w * 0.07, h * 0.12, w * 0.18, h * 0.3);
+}
+function greenBox(ctx, x, y, w, h, lw = 4) { ctx.strokeStyle = '#3DC47E'; ctx.lineWidth = lw; ctx.strokeRect(x, y, w, h); }
+
+Deck.demos.title = () => {
+  const c = document.getElementById('t-cv'), ctx = c.getContext('2d');
+  return Deck.loop(now => {
+    const t = now / 1000;
+    room(ctx, 420, 300);
+    const x = 210 + Math.sin(t * 0.8) * 110, y = 150 + Math.sin(t * 1.3) * 20;
+    face(ctx, x, y, 0.95);
+    greenBox(ctx, x - 60, y - 70, 120, 140);
+    ctx.fillStyle = '#3DC47E'; ctx.font = 'bold 18px Consolas'; ctx.fillText('face', x - 58, y - 78);
+  });
+};
+
+Deck.demos.haar = () => {
+  const c = document.getElementById('hr-cv'), ctx = c.getContext('2d', { willReadFrequently: true });
+  const W = 520, H = 400;
+  const base = document.createElement('canvas'); base.width = W; base.height = H;
+  const b = base.getContext('2d', { willReadFrequently: true });
+  room(b, W, H); face(b, 300, 210, 1.9);
+  const data = b.getImageData(0, 0, W, H).data;
+  const mean = (x, y, w, h) => {
+    let s = 0, n = 0;
+    for (let j = Math.max(0, y | 0); j < Math.min(H, y + h); j += 2) for (let i = Math.max(0, x | 0); i < Math.min(W, x + w); i += 2) {
+      const k = (j * W + i) * 4; s += 0.299 * data[k] + 0.587 * data[k + 1] + 0.114 * data[k + 2]; n++;
+    }
+    return n ? s / n : 0;
+  };
+  const win = { x: 40, y: 260, w: 200, h: 70 };
+  function draw() {
+    ctx.drawImage(base, 0, 0);
+    const half = win.h / 2;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(win.x, win.y, win.w, half);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fillRect(win.x, win.y + half, win.w, half);
+    ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.strokeRect(win.x, win.y, win.w, win.h);
+    const v = Math.round(mean(win.x, win.y + half, win.w, half) - mean(win.x, win.y, win.w, half));
+    document.getElementById('hr-v').textContent = v;
+    document.getElementById('hr-t').innerHTML = v > 40 ? '✅ Похоже на полосу глаз — признак сработал' : v > 15 ? '🤔 Что-то есть, но слабо' : '❌ Признак молчит';
+  }
+  let drag = null;
+  c.onpointerdown = e => { const r = c.getBoundingClientRect(), x = (e.clientX - r.left) * W / r.width, y = (e.clientY - r.top) * H / r.height; drag = { dx: x - win.x, dy: y - win.y }; c.setPointerCapture(e.pointerId); };
+  c.onpointermove = e => { if (!drag) return; const r = c.getBoundingClientRect(); win.x = (e.clientX - r.left) * W / r.width - drag.dx; win.y = (e.clientY - r.top) * H / r.height - drag.dy; draw(); };
+  c.onpointerup = c.onpointercancel = () => (drag = null);
+  c.style.touchAction = 'none';
+  draw();
+};
+
+Deck.demos.cascade = () => {
+  const c = document.getElementById('cs-cv'), ctx = c.getContext('2d'), st = document.getElementById('cs-st');
+  const W = 520, H = 360, fx = 330, fy = 180, fs = 1.2;
+  st.innerHTML = [1, 2, 3, 4, 5].map(i => `<span class="stage" id="cs-${i}">ступень ${i}</span>`).join('') + '<span class="stage" id="cs-r">?</span>';
+  const sizes = [150, 110];
+  let pos = 0;
+  const steps = [];
+  sizes.forEach(s => { for (let y = 10; y + s < H; y += 40) for (let x = 10; x + s < W; x += 40) steps.push({ x, y, s }); });
+  const found = [];
+  return Deck.loop(now => {
+    const k = Math.floor(now / 90) % (steps.length + 15);
+    room(ctx, W, H); face(ctx, fx, fy, fs);
+    found.forEach(f => greenBox(ctx, f.x, f.y, f.s, f.s, 4));
+    if (k >= steps.length) { if (k === steps.length) found.length = 0; return; }
+    const w = steps[k];
+    const d = Math.hypot(w.x + w.s / 2 - fx, w.y + w.s / 2 - fy), good = d < 30 && w.s > 120;
+    const passed = good ? 5 : d < 60 ? 2 : d < 110 ? 1 : 0;
+    if (good && !found.some(f => f.x === w.x && f.y === w.y)) found.push(w);
+    ctx.strokeStyle = good ? '#3DC47E' : '#FF6B6B'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.strokeRect(w.x, w.y, w.s, w.s); ctx.setLineDash([]);
+    for (let i = 1; i <= 5; i++) document.getElementById('cs-' + i).className = 'stage ' + (i <= passed ? 'pass' : i === passed + 1 ? 'fail' : '');
+    const r = document.getElementById('cs-r'); r.className = 'stage ' + (good ? 'pass' : 'fail'); r.textContent = good ? 'лицо!' : 'нет';
+  });
+};
+
+Deck.demos.neighbors = () => {
+  const c = document.getElementById('nb-cv'), ctx = c.getContext('2d'), r = document.getElementById('nb-r');
+  const W = 520, H = 340;
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const cl = [];
+  for (let i = 0; i < 14; i++) cl.push({ g: 0, x: 255 + (rnd() - 0.5) * 22, y: 90 + (rnd() - 0.5) * 22, s: 150 + (rnd() - 0.5) * 24 });
+  [[40, 220, 2], [90, 40, 1], [420, 250, 1], [60, 120, 3]].forEach(([x, y, n], gi) => { for (let i = 0; i < n; i++) cl.push({ g: gi + 1, x: x + (rnd() - 0.5) * 10, y: y + (rnd() - 0.5) * 10, s: 60 + rnd() * 15 }); });
+  function draw() {
+    const mn = +r.value; document.getElementById('nb-v').textContent = mn;
+    room(ctx, W, H); face(ctx, 330, 170, 1.3);
+    let boxes = 0;
+    if (mn === 0) { cl.forEach(b => greenBox(ctx, b.x, b.y, b.s, b.s, 2)); boxes = cl.length; }
+    else {
+      for (let g = 0; g <= 4; g++) {
+        const m = cl.filter(b => b.g === g);
+        if (m.length - 1 < mn) continue;
+        const avg = k => m.reduce((s, b) => s + b[k], 0) / m.length;
+        greenBox(ctx, avg('x'), avg('y'), avg('s'), avg('s'), 5); boxes++;
+      }
+    }
+    document.getElementById('nb-n').textContent = boxes + (mn > 0 && boxes > 1 ? ' — есть ложные!' : mn > 0 && boxes === 1 ? ' — только лицо ✅' : '');
+  }
+  r.oninput = draw; draw();
+};
+</script>
+</body>
+</html>

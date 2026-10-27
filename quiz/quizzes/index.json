@@ -13,5 +13,10 @@
     "file": "../../02-video-production/quiz.json",
     "title": "Пара 2. Что такое видео",
     "description": "FPS, бюджет кадра, сжатие, кодек и контейнер, HSV, тензор видео"
+  },
+  {
+    "file": "../../03-faces/quiz.json",
+    "title": "Тема 3. Лица на видео",
+    "description": "Прямоугольник, каскад Хаара, minNeighbors, лица на видео"
   }
 ]
