@@ -103,6 +103,7 @@ label.field, div.field { display: block; font-weight: 700; margin-bottom: 14px; 
 .net.online::before { background: var(--ok); }
 .net.connecting::before { background: var(--c); }
 .net.offline::before { background: var(--bad); }
+.net.slow::before { background: var(--c); }
 .net:empty { display: none; }
 
 /* ---------- Вопрос ---------- */

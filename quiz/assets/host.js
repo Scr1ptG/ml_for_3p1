@@ -4,13 +4,15 @@
   const app = document.getElementById('app');
   const LS = 'ithubq-host';
   const LS_SET = 'ithubq-host-settings';
-  const GRACE = 1500; // мс после конца таймера, в которые ещё принимаем ответы
+  // После конца таймера ещё ждём ответы: при плохом интернете вопрос доходит до студента
+  // с опозданием, и его ответ тоже приходит позже. Опоздавшие ответы принимаем и на экране результатов.
+  const GRACE = 4000;
   const READY_MS = 3000;
   const { esc, avatarHTML, LETTERS, stars, fmt } = QZ;
   const rich = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
 
   let G = null; // текущая игра (сохраняется в localStorage)
-  let client = null, tickTimer = null, readyTimer = null, saveTimer = null;
+  let client = null, tickTimer = null, readyTimer = null, saveTimer = null, beatTimer = null, pingTimer = null, joinAckTimer = null, pingMs;
   let picked = null; // выбранный, но ещё не запущенный квиз
   let reviewIdx = 0;
   const settings = Object.assign({ shuffle: true, showCorrect: true, broker: 0, sound: true }, QZ.load(LS_SET));
@@ -186,6 +188,7 @@
       qi: -1,
       players: {},
       kicked: [],
+      nextN: 1, // короткий номер игрока: по нему студент находит себя в общих сообщениях
       createdAt: Date.now(),
     };
     save();
@@ -203,7 +206,6 @@
         if (s !== 'online') return;
         const t = x => QZ.PREFIX + old.room + '/' + x;
         c.publish(t('state'), '', true);
-        Object.keys(old.players || {}).forEach(id => c.publish(t('p/' + id), '', true));
         setTimeout(() => c.close(), 1500);
       },
     });
@@ -211,18 +213,24 @@
 
   function connect() {
     if (client) client.close();
+    G.nextN = G.nextN || 1;
+    players().forEach(p => { if (!p.n) p.n = G.nextN++; });
     client = new QZ.Mqtt(QZ.brokerFor(G.room), {
       clientId: 'h-' + G.room + '-' + QZ.uid(4),
       onStatus: s => {
-        QZ.setNet(s);
-        if (s === 'online') {
-          publishState();
-          players().forEach(p => sendPlayer(p.id));
-        }
+        QZ.setNet(s, s === 'online' ? pingMs : undefined);
+        if (s === 'online') publishState();
       },
       onMessage,
     });
     client.subscribe(T('up/+'));
+    client.subscribe(T('echo'));
+    // Пульс: раз в 2 с сообщаем фазу. Студент, пропустивший смену экрана, заметит это и запросит state заново
+    clearInterval(beatTimer);
+    beatTimer = setInterval(() => { if (G && G.phase !== 'question') client.publish(T('tick'), { ph: G.phase, qi: G.qi }); }, 2000);
+    // Замер задержки: сообщение уходит на брокер и возвращается к нам же
+    clearInterval(pingTimer);
+    pingTimer = setInterval(() => client.publish(T('echo'), String(Date.now())), 5000);
   }
 
   function ranked() {
@@ -234,50 +242,41 @@
     return { text: q.text, code: q.code, image: q.image, options: q.options, multi: q.multi, time: q.time, difficulty: q.difficulty, points: q.points };
   }
 
+  // Всё, что нужно студентам, — в одном закреплённом сообщении state.
+  // pl: id -> номер игрока; r: номер -> [очки за вопрос, всего очков, место, ответил ли на этот вопрос]
   function publishState() {
     if (!client || !G) return;
     const total = G.quiz.questions.length;
     const top = () => ranked().slice(0, 5).map(p => ({ n: shortName(p), s: p.score }));
-    let s;
-    if (G.phase === 'lobby') s = { phase: 'lobby', title: G.quiz.title, count: players().length };
-    else if (G.phase === 'ready') s = { phase: 'ready', qi: G.qi, total, difficulty: G.quiz.questions[G.qi].difficulty };
-    else if (G.phase === 'question') s = { phase: 'question', qi: G.qi, total, q: publicQ(G.quiz.questions[G.qi]), remaining: Math.max(0, G.deadline - Date.now()) };
-    else if (G.phase === 'reveal') s = { phase: 'reveal', qi: G.qi, total, last: G.qi === total - 1, top: top() };
+    const results = () => Object.fromEntries(ranked().map((p, i) => {
+      const a = p.answers[G.qi];
+      return [p.n, [a ? a.gain : 0, p.score, i + 1, a ? 1 : 0]];
+    }));
+    const s = { phase: G.phase, qi: G.qi, total, title: G.quiz.title, count: players().length,
+      pl: Object.fromEntries(players().map(p => [p.id, p.n])), k: G.kicked };
+    if (G.phase === 'ready') s.difficulty = G.quiz.questions[G.qi].difficulty;
+    else if (G.phase === 'question') Object.assign(s, { q: publicQ(G.quiz.questions[G.qi]), remaining: Math.max(0, G.deadline - Date.now()) });
+    else if (G.phase === 'reveal') Object.assign(s, { last: G.qi === total - 1, top: top(), r: results() });
     else if (G.phase === 'end') {
-      s = { phase: 'end', title: G.quiz.title, total, top: top(),
-        review: G.quiz.questions.map(q => ({ text: q.text, code: q.code, options: q.options, correct: q.correct, explain: q.explain })) };
+      Object.assign(s, { top: top(), r: results(),
+        review: G.quiz.questions.map(q => ({ text: q.text, code: q.code, options: q.options, correct: q.correct, explain: q.explain })) });
     }
-    if (s) client.publish(T('state'), s, true);
-  }
-
-  function sendPlayer(id) {
-    const p = G.players[id];
-    if (!p || !client) return;
-    const m = { ok: true, score: p.score, phase: G.phase, qi: G.qi };
-    if (G.phase === 'question' && p.answers[G.qi]) m.answered = G.qi;
-    if (G.phase === 'reveal' || G.phase === 'end') {
-      const r = ranked();
-      m.rank = r.indexOf(p) + 1;
-      m.of = r.length;
-    }
-    if (G.phase === 'reveal') m.gain = p.answers[G.qi] ? p.answers[G.qi].gain : 0;
-    if (G.phase === 'end') {
-      m.answers = {};
-      Object.entries(p.answers).forEach(([qi, a]) => { m.answers[qi] = { c: a.choice, ok: a.correct, g: a.gain }; });
-    }
-    client.publish(T('p/' + id), m, true);
+    client.publish(T('state'), s, true);
   }
 
   function onMessage(topic, text) {
-    if (!G || !topic.startsWith(T('up/'))) return;
+    if (!G) return;
+    if (topic === T('echo')) {
+      pingMs = Date.now() - Number(text);
+      if (pingMs >= 0 && pingMs < 60000) QZ.setNet('online', pingMs);
+      return;
+    }
+    if (!topic.startsWith(T('up/'))) return;
     const id = topic.slice(T('up/').length);
     if (!/^[a-z0-9]{6,24}$/.test(id)) return;
     const msg = QZ.parse(text);
     if (!msg || typeof msg !== 'object') return;
-    if (G.kicked.includes(id)) {
-      if (msg.t !== 'bye') client.publish(T('p/' + id), { kicked: true }, true);
-      return;
-    }
+    if (G.kicked.includes(id)) return; // список убранных есть в state, студент увидит его сам
     if (msg.t === 'join') onJoin(id, msg);
     else if (msg.t === 'ans') onAnswer(id, msg);
     else if (msg.t === 'bye' && G.players[id]) {
@@ -298,11 +297,12 @@
       avatar = { type: 'preset', key: msg.avatar.key };
     }
     const isNew = !G.players[id];
-    const p = G.players[id] || (G.players[id] = { id, score: 0, answers: {}, prevRank: 0, joinedAt: Date.now() });
+    const p = G.players[id] || (G.players[id] = { id, n: G.nextN++, score: 0, answers: {}, prevRank: 0, joinedAt: Date.now() });
     Object.assign(p, { first, last, avatar, online: true });
     save();
-    sendPlayer(id);
-    if (G.phase === 'lobby') publishState(); // обновить счётчик игроков
+    // Студент повторяет join, пока не увидит себя в state. Входы за секунду собираем в одну отправку,
+    // чтобы 30 человек, входящих разом, не создали 30 сообщений каждому.
+    if (!joinAckTimer) joinAckTimer = setTimeout(() => { joinAckTimer = null; publishState(); }, 1000);
     if (isNew && G.phase === 'lobby') QZ.sound.beep(880, 0.08, 'triangle', 0.08);
     refresh();
   }
@@ -311,10 +311,10 @@
     const p = G.players[id];
     if (!p) return;
     p.online = true;
-    if (G.phase !== 'question' || msg.qi !== G.qi) return;
-    if (p.answers[G.qi]) { sendPlayer(id); return; }
-    const now = Date.now();
-    if (now > G.deadline + GRACE) return;
+    // Ответ на текущий вопрос принимаем, пока идёт вопрос и пока на экране его результаты (опоздавшие)
+    const late = G.phase === 'reveal';
+    if ((G.phase !== 'question' && !late) || msg.qi !== G.qi) return;
+    if (p.answers[G.qi]) { if (late) publishState(); return; } // повтор: студент ещё не видел подтверждения
     const q = G.quiz.questions[G.qi];
     const valid = i => Number.isInteger(i) && i >= 0 && i < q.options.length;
     let choice;
@@ -326,14 +326,22 @@
       choice = msg.choice;
     }
     const limit = q.time * 1000;
-    // Время считаем по часам студента, но не меньше серверного минус 2.5 с на задержку сети
-    const ms = Math.min(limit, Math.max(0, Number(msg.ms) || 0, now - G.qStartedAt - 2500));
+    // Время ответа считаем по часам студента: от момента, когда вопрос появился у него на экране.
+    // Так задержка сети не отнимает очки. Ответ позже его собственного таймера не принимаем.
+    const ms = Number(msg.ms);
+    if (!(ms >= 0) || ms > limit + 1000) return;
     const chosen = [].concat(choice);
     const correct = chosen.length === q.correct.length && chosen.every((c, i) => c === q.correct[i]);
-    const gain = correct ? Math.round(q.points * (1 - 0.5 * ms / limit)) : 0;
-    p.answers[G.qi] = { choice, ms, correct, gain, counted: true };
+    const gain = correct ? Math.round(q.points * (1 - 0.5 * Math.min(ms, limit) / limit)) : 0;
+    p.answers[G.qi] = { choice, ms: Math.min(ms, limit), correct, gain, counted: true, late };
     save();
-    sendPlayer(id);
+    if (late) {
+      p.score += gain;
+      publishState();
+      renderReveal();
+      return;
+    }
+    sendTick();
     QZ.sound.beep(520 + Object.keys(answersFor(G.qi)).length * 12, 0.05, 'sine', 0.05);
     refresh();
     const on = onlinePlayers();
@@ -372,11 +380,18 @@
     runTick();
   }
 
+  // Тик вопроса: остаток времени и номера тех, чей ответ уже принят (студент видит «Ответ принят»)
+  function sendTick() {
+    if (!client || !G || G.phase !== 'question') return;
+    const a = players().filter(p => p.answers[G.qi]).map(p => p.n);
+    client.publish(T('tick'), { ph: 'question', qi: G.qi, rem: Math.max(0, G.deadline - Date.now()), a });
+  }
+
   function runTick() {
     let lastBeep = null;
     tickTimer = setInterval(() => {
       const remaining = G.deadline - Date.now();
-      if (client) client.publish(T('tick'), { qi: G.qi, remaining: Math.max(0, remaining) });
+      sendTick();
       const sec = Math.ceil(remaining / 1000);
       if (sec <= 5 && sec > 0 && sec !== lastBeep) { lastBeep = sec; QZ.sound.beep(sec === 1 ? 880 : 660, 0.08); }
       if (remaining <= -GRACE) endQuestion();
@@ -395,7 +410,6 @@
     G.phase = 'reveal';
     save();
     publishState();
-    players().forEach(p => sendPlayer(p.id));
     QZ.sound.beep(392, 0.3, 'triangle');
     renderReveal();
   }
@@ -410,7 +424,6 @@
     G.phase = 'end';
     save();
     publishState();
-    players().forEach(p => sendPlayer(p.id));
     QZ.sound.fanfare();
     renderEnd();
   }
@@ -420,7 +433,6 @@
     if (!p || !confirm(`Убрать из игры: ${fullName(p)}?`)) return;
     delete G.players[id];
     G.kicked.push(id);
-    client.publish(T('p/' + id), { kicked: true }, true);
     save();
     publishState();
     refresh();
@@ -434,9 +446,10 @@
       <button class="btn small" data-act="quit">Выйти</button></div>`;
   }
 
-  // Студентам показываем корень сайта: корневой index.html перенаправляет в quiz/
+  // Адрес для студентов: папка с квизом или то, что указано в <meta name="join-path"> у host.html
   function joinUrl() {
-    return location.origin + location.pathname.replace(/host\.html$/, '').replace(/quiz\/$/, '');
+    const m = document.querySelector('meta[name="join-path"]');
+    return new URL(m ? m.content : './', location.href).href;
   }
 
   function renderLobby() {
@@ -659,6 +672,8 @@
     } else if (act === 'quit' || act === 'new') {
       if (act === 'quit' && G.phase !== 'end' && !confirm('Выйти из игры? Результаты можно будет продолжить через «Продолжить» на главном экране.')) return;
       stopTimers();
+      clearInterval(beatTimer);
+      clearInterval(pingTimer);
       if (client) { client.close(); client = null; }
       QZ.setNet('');
       G = null;

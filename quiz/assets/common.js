@@ -6,7 +6,8 @@ const QZ = (() => {
     { name: 'EMQX (основной)', url: 'wss://broker.emqx.io:8084/mqtt' },
     { name: 'HiveMQ (запасной)', url: 'wss://broker.hivemq.com:8884/mqtt' },
   ];
-  const PREFIX = 'ithub-mlq/v1/';
+  // v2: все результаты идут одним сообщением state, личных сообщений p/{id} больше нет
+  const PREFIX = 'ithub-mlq/v2/';
   const enc = new TextEncoder();
   const dec = new TextDecoder();
 
@@ -127,10 +128,11 @@ const QZ = (() => {
         const q = this.queue;
         this.queue = [];
         q.forEach(p => this.raw(p));
+        // Пинг каждые 10 с: зависшее соединение заметим за ~25 с и переподключимся
         this.timer = setInterval(() => {
-          if (Date.now() - this.lastRx > 45000) this.ws.close();
+          if (Date.now() - this.lastRx > 25000) this.ws.close();
           else this.raw(new Uint8Array([0xc0, 0]));
-        }, 20000);
+        }, 10000);
         this.onStatus('online');
       } else if (type === 3) { // PUBLISH
         const tl = (body[0] << 8) | body[1];
@@ -152,6 +154,11 @@ const QZ = (() => {
 
     subscribe(t) {
       this.subs.add(t);
+      if (this.ready) this.sendSub(t);
+    }
+
+    // Повторная подписка: брокер заново пришлёт «закреплённое» (retained) сообщение
+    resubscribe(t) {
       if (this.ready) this.sendSub(t);
     }
 
@@ -208,17 +215,17 @@ const QZ = (() => {
     return `<span class="ava ${cls}">${avatarSVG(av && av.key)}</span>`;
   }
 
-  // Сжимает загруженную картинку до квадрата 96x96 JPEG (~4–6 КБ)
+  // Сжимает загруженную картинку до квадрата 64x64 JPEG (~2 КБ): на слабом интернете важен каждый килобайт
   function shrinkImage(file) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
         const c = document.createElement('canvas');
-        c.width = c.height = 96;
+        c.width = c.height = 64;
         const s = Math.min(img.width, img.height);
-        c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 96, 96);
+        c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 64, 64);
         URL.revokeObjectURL(img.src);
-        resolve(c.toDataURL('image/jpeg', 0.75));
+        resolve(c.toDataURL('image/jpeg', 0.6));
       };
       img.onerror = () => reject(new Error('Не удалось открыть картинку'));
       img.src = URL.createObjectURL(file);
@@ -234,11 +241,14 @@ const QZ = (() => {
   const stars = d => '★'.repeat(d) + '☆'.repeat(3 - d);
   const fmt = n => Number(n || 0).toLocaleString('ru-RU');
 
-  function setNet(status) {
+  function setNet(status, pingMs) {
     const el = document.getElementById('net');
     if (!el) return;
-    el.className = 'net ' + status;
-    el.textContent = { online: 'онлайн', connecting: 'подключение…', offline: 'нет связи, переподключаюсь…' }[status] || status;
+    if (status === undefined) status = el.dataset.status || '';
+    el.dataset.status = status;
+    el.className = 'net ' + status + (status === 'online' && pingMs > 1500 ? ' slow' : '');
+    const ping = status === 'online' && pingMs !== undefined ? ` · задержка ${(pingMs / 1000).toFixed(1).replace('.', ',')} с` : '';
+    el.textContent = ({ online: 'онлайн', connecting: 'подключение…', offline: 'нет связи, переподключаюсь…' }[status] ?? status) + ping;
   }
 
   // Короткие звуки только у ведущего
