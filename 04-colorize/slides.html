@@ -101,7 +101,7 @@ L, a, b = cv2.split(lab)          # L — это и есть чёрно-белы
 #! flat = np.full_like(L, 128)       # «цвета нет»
 gray = cv2.cvtColor(cv2.merge([L, flat, flat]), cv2.COLOR_LAB2BGR)</pre>
   <p class="step">Сеть будет делать обратное: получать <code>L</code> и выдавать <code>a</code>, <code>b</code>. Мы склеим <code>merge([L, a, b])</code> → <code>LAB2BGR</code>.</p>
-  <aside class="notes">Задания 1–4 ноутбука. 10 минут.</aside>
+  <aside class="notes">Задания 6–9 ноутбука (до них — часть 0: видео и ручной перевод в ч/б, задания 1–5). 10 минут.</aside>
 </section>
 
 <!-- 6 -->
@@ -119,7 +119,7 @@ gray = cv2.cvtColor(cv2.merge([L, flat, flat]), cv2.COLOR_LAB2BGR)</pre>
     <div class="card b step"><h3>Энкодер</h3><p style="font-size:22px;margin:0">Каждая свёртка с шагом 2 уменьшает кадр вдвое. Остаётся «смысл»: где лицо, где фон.</p></div>
     <div class="card g step"><h3>Декодер</h3><p style="font-size:22px;margin:0">Транспонированная свёртка увеличивает вдвое. На выходе Tanh: числа от −1 до 1 — это нормализованные a и b.</p></div>
   </div>
-  <aside class="notes">Задания 7–8: студенты сами смотрят форму кода (1, 128, 12, 16).</aside>
+  <aside class="notes">Задания 12–13: студенты сами смотрят форму кода (1, 128, 12, 16).</aside>
 </section>
 
 <!-- 7 -->
@@ -135,7 +135,7 @@ opt.step()                   # 4. подвинуть веса</pre>
     <div class="card y"><p style="margin:0;font-size:22px"><b>Эпоха</b> — один проход по всем кадрам обучения пачками по 16.</p></div>
     <div class="card r"><p style="margin:0;font-size:22px">Ошибку смотрим на <b>проверочных</b> кадрах — их сеть не видела.</p></div>
   </div>
-  <aside class="notes">Задание 9. Если забыть opt.step — веса не меняются, ошибка стоит. Если забыть zero_grad — градиенты копятся.</aside>
+  <aside class="notes">Задание 14. Если забыть opt.step — веса не меняются, ошибка стоит. Если забыть zero_grad — градиенты копятся.</aside>
 </section>
 
 <!-- 8 -->
@@ -183,7 +183,7 @@ out = cv2.warpAffine(img, M, (w, h))</pre>
     </div>
     <div class="card y"><h3>Сдать</h3><p style="font-size:22px;margin:0">Ссылку на ноутбук и файл <code>video/my_colorized.mp4</code>.</p></div>
   </div>
-  <aside class="notes">Код КТ — склейка заданий 9, 10, 11. Слабым студентам разрешите копировать ячейки и менять только имена переменных.</aside>
+  <aside class="notes">Код КТ — склейка заданий 14, 15, 16. Слабым студентам разрешите копировать ячейки и менять только имена переменных.</aside>
 </section>
 
 <!-- 11 -->
