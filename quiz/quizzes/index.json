@@ -18,5 +18,10 @@
     "file": "../../03-faces/quiz.json",
     "title": "Тема 3. Лица на видео",
     "description": "Прямоугольник, каскад Хаара, minNeighbors, лица на видео"
+  },
+  {
+    "file": "../../04-colorize/quiz.json",
+    "title": "Тема 4. Раскраска видео",
+    "description": "Lab, автоэнкодер, шаг обучения, аугментация"
   }
 ]

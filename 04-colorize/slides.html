@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тема 4 · Раскраска видео</title>
+<link rel="stylesheet" href="../shared/slides.css">
+<style>
+  .flow { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 10px 0 22px; flex-wrap: wrap; }
+  .flow .box { border: 3px solid var(--ink); border-radius: 16px; padding: 12px 16px; background: #fff; box-shadow: var(--sh); font-weight: 900; font-size: 20px; text-align: center; min-width: 120px; }
+  .flow .box small { display: block; font-weight: 600; color: var(--muted); font-size: 15px; font-family: var(--mono); }
+  .flow .arr { font-size: 30px; font-weight: 900; }
+  .flow .box.enc { background: #dbe9ff; } .flow .box.dec { background: #dff7ea; } .flow .box.code { background: #fff3c4; }
+  table.t { border-collapse: collapse; font-size: 22px; width: 100%; background: #fff; border: 3px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: var(--sh); }
+  table.t th, table.t td { padding: 9px 14px; border-bottom: 2px solid var(--soft); text-align: left; }
+  table.t th { background: #fff3c4; }
+  .sw { width: 100%; height: 150px; border: 3px solid var(--ink); border-radius: 16px; box-shadow: var(--sh); }
+  .sl { display: grid; grid-template-columns: 70px 1fr 60px; align-items: center; gap: 12px; font-family: var(--mono); font-size: 24px; font-weight: 900; margin: 10px 0; }
+  .sl input { width: 100%; }
+  .grays { display: flex; gap: 18px; justify-content: center; }
+  .grays div { text-align: center; font-weight: 900; }
+  .grays i { display: block; width: 120px; height: 80px; border: 3px solid var(--ink); border-radius: 12px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- 1 -->
+<section class="slide" data-demo="title">
+  <span class="kicker">Раздел «Видео» · Тема 4</span>
+  <div class="cols wide-left grow" style="align-items:center">
+    <div>
+      <h1>Раскрашиваем чёрно-белое видео</h1>
+      <p class="big muted">Модель Lab, автоэнкодер на PyTorch, аугментация</p>
+      <p style="margin-top:22px">Старые фильмы и фото раскрашивают нейросетями. Сегодня обучим свою — маленькую, за минуту, прямо в Colab.</p>
+    </div>
+    <div class="frame-box float" style="width:420px;height:300px"><canvas id="t-cv" width="420" height="300"></canvas></div>
+  </div>
+  <aside class="notes">Спросите: видели раскрашенные хроники войны, старые фото родственников в приложениях? Это та же задача.</aside>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <span class="kicker">Задача</span>
+  <h2>Вход — чёрно-белый кадр, ответ — цветной</h2>
+  <div class="cols">
+    <div>
+      <p>Яркость у нас уже есть. Не хватает только <b>цвета</b> каждого пикселя.</p>
+      <p class="step">Значит, сети надо угадать не всю картинку, а только «какого цвета этот серый пиксель».</p>
+    </div>
+    <div class="card r step"><h3>Но это неоднозначно</h3>
+      <div class="grays">
+        <div><i style="background:#c0392b"></i>красный</div>
+        <div><i style="background:#2e8b3e"></i>зелёный</div>
+        <div><i style="background:#6a6a6a"></i>серый</div>
+      </div>
+      <p style="font-size:22px;margin:10px 0 0">В чёрно-белом все три — почти один и тот же серый. Сеть угадывает цвет по <b>смыслу</b>: «это небо», «это кожа», «это трава».</p>
+    </div>
+  </div>
+  <aside class="notes">Ключевая мысль: по одному пикселю цвет не узнать, нужен контекст — поэтому свёрточная сеть, которая видит окрестность.</aside>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-demo="lab">
+  <span class="kicker">Модель Lab</span>
+  <h2>L — яркость, a и b — цвет</h2>
+  <div class="cols">
+    <div>
+      <div class="sl"><span>L</span><input type="range" id="lab-L" min="0" max="255" value="170"><span id="lab-Lv"></span></div>
+      <div class="sl"><span>a</span><input type="range" id="lab-a" min="0" max="255" value="128"><span id="lab-av"></span></div>
+      <div class="sl"><span>b</span><input type="range" id="lab-b" min="0" max="255" value="128"><span id="lab-bv"></span></div>
+      <p style="font-size:21px"><b>a</b>: зелёный ↔ красный · <b>b</b>: синий ↔ жёлтый<br><b>128</b> у a и b — «цвета нет».</p>
+    </div>
+    <div>
+      <div class="sw" id="lab-sw"></div>
+      <p class="muted" style="font-size:20px">Слева цвет, ниже — как его видит чёрно-белый фильм:</p>
+      <div class="sw" id="lab-gr" style="height:70px"></div>
+    </div>
+  </div>
+  <aside class="notes">Дайте студенту подвигать a и b: нижняя полоса не меняется. Вывод: чёрно-белое — это ровно L, а угадывать надо 2 числа.</aside>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <span class="kicker">Это не новое: телевизор</span>
+  <h2>Цветное ТВ передавало яркость отдельно от цвета</h2>
+  <div class="cols">
+    <div class="card b"><h3>Y + два цветоразностных сигнала</h3><p style="font-size:22px;margin:0">Цветной сигнал сделали так, чтобы <b>старый чёрно-белый телевизор</b> брал только яркость Y и показывал картинку, а цветной добавлял U и V.</p></div>
+    <div class="card y"><h3>И сжатие видео тоже</h3><p style="font-size:22px;margin:0">Глаз чувствительнее к яркости, чем к цвету. Поэтому H.264 хранит цвет в 4 раза грубее (<code>yuv420p</code> из темы 2).</p></div>
+  </div>
+  <p class="step" style="margin-top:22px">Lab, YUV, HSV — все отделяют яркость от цвета. Lab выбрали, потому что расстояния в нём близки к тому, как различает цвета глаз.</p>
+  <aside class="notes">Связь с темой 2: yuv420p в ffmpeg. 3 минуты, можно пропустить при нехватке времени.</aside>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <span class="kicker">Код</span>
+  <h2>Lab в OpenCV — 3 строчки</h2>
+<pre class="py">lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+L, a, b = cv2.split(lab)          # L — это и есть чёрно-белый кадр
+#! flat = np.full_like(L, 128)       # «цвета нет»
+gray = cv2.cvtColor(cv2.merge([L, flat, flat]), cv2.COLOR_LAB2BGR)</pre>
+  <p class="step">Сеть будет делать обратное: получать <code>L</code> и выдавать <code>a</code>, <code>b</code>. Мы склеим <code>merge([L, a, b])</code> → <code>LAB2BGR</code>.</p>
+  <aside class="notes">Задания 1–4 ноутбука. 10 минут.</aside>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <span class="kicker">Нейросеть</span>
+  <h2>Автоэнкодер: сжать → развернуть</h2>
+  <div class="flow">
+    <div class="box">L<small>1×96×128</small></div><span class="arr">→</span>
+    <div class="box enc">энкодер<small>Conv stride 2 ×3</small></div><span class="arr">→</span>
+    <div class="box code">код<small>128×12×16</small></div><span class="arr">→</span>
+    <div class="box dec">декодер<small>ConvTranspose ×3</small></div><span class="arr">→</span>
+    <div class="box">a, b<small>2×96×128</small></div>
+  </div>
+  <div class="cols">
+    <div class="card b step"><h3>Энкодер</h3><p style="font-size:22px;margin:0">Каждая свёртка с шагом 2 уменьшает кадр вдвое. Остаётся «смысл»: где лицо, где фон.</p></div>
+    <div class="card g step"><h3>Декодер</h3><p style="font-size:22px;margin:0">Транспонированная свёртка увеличивает вдвое. На выходе Tanh: числа от −1 до 1 — это нормализованные a и b.</p></div>
+  </div>
+  <aside class="notes">Задания 7–8: студенты сами смотрят форму кода (1, 128, 12, 16).</aside>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <span class="kicker">Главное в PyTorch</span>
+  <h2>Шаг обучения — всегда 4 действия</h2>
+<pre class="py">pred = model(L)              # 1. forward: сеть отвечает
+loss = loss_fn(pred, ab)     # 2. насколько ошиблась (MSE)
+opt.zero_grad()
+#! loss.backward()              # 3. куда двигать каждый вес
+opt.step()                   # 4. подвинуть веса</pre>
+  <div class="cols step">
+    <div class="card y"><p style="margin:0;font-size:22px"><b>Эпоха</b> — один проход по всем кадрам обучения пачками по 16.</p></div>
+    <div class="card r"><p style="margin:0;font-size:22px">Ошибку смотрим на <b>проверочных</b> кадрах — их сеть не видела.</p></div>
+  </div>
+  <aside class="notes">Задание 9. Если забыть opt.step — веса не меняются, ошибка стоит. Если забыть zero_grad — градиенты копятся.</aside>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-demo="aug">
+  <span class="kicker">Аугментация</span>
+  <h2>Каждый кадр — немного по-новому</h2>
+  <div class="cols">
+    <div>
+      <p>Сдвиг, поворот, увеличение, уменьшение, зеркало — случайно на каждой эпохе.</p>
+      <p class="step">Сеть не может «зазубрить» кадр и учит правило: «кожа оранжевая, где бы она ни была».</p>
+<pre class="py step">M = cv2.getRotationMatrix2D(центр, угол, масштаб)
+M[:, 2] += сдвиг
+out = cv2.warpAffine(img, M, (w, h))</pre>
+    </div>
+    <div class="frame-box" style="width:420px;height:300px"><canvas id="aug-cv" width="420" height="300"></canvas></div>
+  </div>
+  <aside class="notes">Эксперимент в ноутбуке: USE_AUGMENT = False — ошибка на проверке хуже. Это прямо требование задания LXP.</aside>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <span class="kicker">Чего ждать</span>
+  <h2>Результат: правдоподобно, но не идеально</h2>
+  <table class="t">
+    <tr><th>Ответ</th><th>Ошибка на проверке</th></tr>
+    <tr><td>«цвета нет» (всё серое)</td><td>≈ 0.015</td></tr>
+    <tr><td>наша сеть, 20 эпох</td><td><b>≈ 0.002</b></td></tr>
+  </table>
+  <div class="cols" style="margin-top:22px">
+    <div class="card g step"><p style="margin:0;font-size:22px">Хорошо: кожа, фон, крупные пятна.</p></div>
+    <div class="card r step"><p style="margin:0;font-size:22px">Плохо: редкие цвета (синий свитер) становятся бурыми. MSE «усредняет» — сеть выбирает средний цвет, чтобы меньше ошибаться.</p></div>
+  </div>
+  <aside class="notes">Большие модели (DeOldify) учатся на миллионах фото, наша — на 200 кадрах одного мультфильма.</aside>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <span class="kicker">КТ · 2 балла LXP</span>
+  <h2>Раскрасить своё видео</h2>
+  <div class="cols">
+    <div>
+      <p>1. Запишите 8 секунд с веб-камеры или загрузите свой ролик. Покажите что-нибудь цветное.</p>
+      <p>2. Первые 70% кадров — обучение <b>с аугментацией</b>, остальные — раскраска.</p>
+      <p>3. Сохраните <code>video/my_colorized.mp4</code>: слева ч/б, справа раскраска.</p>
+    </div>
+    <div class="card y"><h3>Сдать</h3><p style="font-size:22px;margin:0">Ссылку на ноутбук и файл <code>video/my_colorized.mp4</code>.</p></div>
+  </div>
+  <aside class="notes">Код КТ — склейка заданий 9, 10, 11. Слабым студентам разрешите копировать ячейки и менять только имена переменных.</aside>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="huge pop">Практика и квиз 🎯</div>
+  <p class="big" style="margin-top:24px">Ноутбук: <a data-site="04-colorize/lesson.ipynb" target="_blank">открыть в Colab</a></p>
+  <p class="big">Квиз: <a data-site="quiz" target="_blank" style="font-family:var(--mono)">сайт квиза</a> → код с экрана</p>
+</section>
+
+</div>
+<script src="../shared/slides.js"></script>
+<script>
+// OpenCV 8-bit Lab → CSS rgb
+function lab2rgb(L8, a8, b8) {
+  const L = L8 * 100 / 255, a = a8 - 128, b = b8 - 128;
+  let y = (L + 16) / 116, x = a / 500 + y, z = y - b / 200;
+  const f = t => t ** 3 > 0.008856 ? t ** 3 : (t - 16 / 116) / 7.787;
+  x = 0.95047 * f(x); y = f(y); z = 1.08883 * f(z);
+  const g = c => { c = c > 0.0031308 ? 1.055 * c ** (1 / 2.4) - 0.055 : 12.92 * c; return Math.round(Math.max(0, Math.min(1, c)) * 255); };
+  return [g(x * 3.2406 - y * 1.5372 - z * 0.4986), g(-x * 0.9689 + y * 1.8758 + z * 0.0415), g(x * 0.0557 - y * 0.2040 + z * 1.0570)];
+}
+
+function scene(ctx, W, H, t) {
+  ctx.fillStyle = '#7ec8ff'; ctx.fillRect(0, 0, W, H * 0.6);
+  ctx.fillStyle = '#4caf50'; ctx.fillRect(0, H * 0.6, W, H * 0.4);
+  ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(W * 0.8, H * 0.2, 34, 0, 7); ctx.fill();
+  ctx.fillStyle = '#c0392b'; ctx.fillRect(W * 0.18, H * 0.38, 120, 90);
+  ctx.fillStyle = '#8e2b1f'; ctx.beginPath(); ctx.moveTo(W * 0.18 - 14, H * 0.38); ctx.lineTo(W * 0.18 + 60, H * 0.18); ctx.lineTo(W * 0.18 + 134, H * 0.38); ctx.fill();
+  ctx.fillStyle = '#f2b48c'; ctx.beginPath(); ctx.arc(W * 0.62 + Math.sin(t) * 30, H * 0.55, 26, 0, 7); ctx.fill();
+}
+
+Deck.demos.title = () => {
+  const c = document.getElementById('t-cv'), ctx = c.getContext('2d');
+  return Deck.loop(t => {
+    t /= 1000;
+    scene(ctx, 420, 300, t);
+    const img = ctx.getImageData(0, 0, 420, 300), d = img.data;
+    const edge = (Math.sin(t * 0.8) * 0.5 + 0.5) * 420;
+    for (let i = 0; i < d.length; i += 4) {
+      if ((i / 4) % 420 > edge) { const v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; d[i] = d[i + 1] = d[i + 2] = v; }
+    }
+    ctx.putImageData(img, 0, 0);
+    ctx.fillStyle = '#fff'; ctx.fillRect(edge - 2, 0, 4, 300);
+  });
+};
+
+Deck.demos.lab = () => {
+  const ids = ['L', 'a', 'b'], el = k => document.getElementById('lab-' + k);
+  function draw() {
+    const [L, a, b] = ids.map(k => +el(k).value);
+    ids.forEach(k => el(k + 'v').textContent = el(k).value);
+    const [r, g, bl] = lab2rgb(L, a, b), [gr] = lab2rgb(L, 128, 128);
+    el('sw').style.background = `rgb(${r},${g},${bl})`;
+    el('gr').style.background = `rgb(${gr},${gr},${gr})`;
+  }
+  ids.forEach(k => el(k).oninput = draw); draw();
+};
+
+Deck.demos.aug = () => {
+  const c = document.getElementById('aug-cv'), ctx = c.getContext('2d');
+  const src = document.createElement('canvas'); src.width = 420; src.height = 300;
+  scene(src.getContext('2d'), 420, 300, 0);
+  let last = -1e9, p = { a: 0, s: 1, dx: 0, dy: 0, f: 1 };
+  return Deck.loop(t => {
+    if (t - last > 900) {
+      last = t;
+      p = { a: (Math.random() * 20 - 10) * Math.PI / 180, s: 0.9 + Math.random() * 0.25, dx: Math.random() * 40 - 20, dy: Math.random() * 40 - 20, f: Math.random() < 0.5 ? -1 : 1 };
+    }
+    ctx.fillStyle = '#ddd'; ctx.fillRect(0, 0, 420, 300);
+    ctx.save(); ctx.translate(210 + p.dx, 150 + p.dy); ctx.rotate(p.a); ctx.scale(p.s * p.f, p.s);
+    ctx.drawImage(src, -210, -150); ctx.restore();
+    ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(0, 266, 420, 34);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 16px monospace';
+    ctx.fillText(`угол ${(p.a * 180 / Math.PI).toFixed(0)}°  масштаб ${p.s.toFixed(2)}  ${p.f < 0 ? 'зеркало' : ''}`, 10, 289);
+  });
+};
+</script>
+</body>
+</html>
