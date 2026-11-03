@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Текст · Как машина читает твиты</title>
+<link rel="stylesheet" href="../shared/slides.css">
+<style>
+  .flow { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 10px 0 22px; flex-wrap: wrap; }
+  .flow .box { border: 3px solid var(--ink); border-radius: 16px; padding: 12px 16px; background: #fff; box-shadow: var(--sh); font-weight: 900; font-size: 20px; text-align: center; min-width: 110px; }
+  .flow .box small { display: block; font-weight: 600; color: var(--muted); font-size: 15px; font-family: var(--mono); }
+  .flow .arr { font-size: 30px; font-weight: 900; }
+  .flow .box.y { background: #fff3c4; } .flow .box.g { background: #dff7ea; } .flow .box.b { background: #dbe9ff; }
+  table.t { border-collapse: collapse; font-size: 21px; width: 100%; background: #fff; border: 3px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: var(--sh); }
+  table.t th, table.t td { padding: 7px 11px; border-bottom: 2px solid var(--soft); text-align: center; }
+  table.t th { background: #fff3c4; }
+  table.t td:first-child, table.t th:first-child { text-align: left; font-weight: 900; }
+  table.t td.one { background: #ffd8d8; font-weight: 900; }
+  .tw { border: 3px solid var(--ink); border-radius: 16px; background: #fff; box-shadow: var(--sh); padding: 12px 16px; margin: 0 0 12px; font-size: 21px; }
+  .tw b { float: right; font-size: 17px; padding: 2px 10px; border-radius: 10px; border: 2px solid var(--ink); }
+  .tw b.p { background: #dff7ea; } .tw b.n { background: #ffd8d8; }
+  .inp { width: 100%; font: 700 22px var(--mono); padding: 10px 14px; border: 3px solid var(--ink); border-radius: 12px; box-sizing: border-box; }
+  .toks { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; min-height: 44px; }
+  .toks span { font: 700 20px var(--mono); background: #dbe9ff; border: 2px solid var(--ink); border-radius: 10px; padding: 4px 10px; }
+  .vec { font: 700 19px var(--mono); }
+  .vec td { min-width: 34px; }
+  .plot { position: relative; width: 460px; height: 330px; border: 3px solid var(--ink); border-radius: 16px; background: #fff; box-shadow: var(--sh); }
+  .plot i { position: absolute; font: 900 19px var(--mono); font-style: normal; transform: translate(-50%, -50%); white-space: nowrap; }
+  .plot i::before { content: ""; display: block; width: 10px; height: 10px; border-radius: 50%; background: currentColor; margin: 0 auto 2px; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- 1 -->
+<section class="slide">
+  <span class="kicker">Раздел «Текст» · Тема 1</span>
+  <div class="cols wide-left grow" style="align-items:center">
+    <div>
+      <h1>Как машина читает твиты</h1>
+      <p class="big muted">Токены, one-hot, мешок слов, TF-IDF, word2vec</p>
+      <p style="margin-top:22px">Цель раздела: модель читает твит и говорит — он <b>позитивный</b> или <b>негативный</b>.</p>
+    </div>
+    <div>
+      <div class="tw float">Отличный был денёк! Спасибо всем <b class="p">позитив</b></div>
+      <div class="tw float">Голова болит, вставать не хочу <b class="n">негатив</b></div>
+      <div class="tw float">в обед идём с котом гулять <b class="p">?</b></div>
+    </div>
+  </div>
+  <aside class="notes">Спросите: где в жизни машина сама понимает текст? Фильтр спама, автоответы банка, модерация комментариев, поиск, переводчик, ChatGPT.</aside>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <span class="kicker">Задачи машинного обучения</span>
+  <h2>Три большие области</h2>
+  <div class="cols" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card b"><h3>👁 CV — зрение</h3><p style="font-size:21px;margin:0"><b>Вход:</b> картинка, видео<br><b>Примеры:</b> найти лицо, распознать цифру, раскрасить кадр, беспилотник видит пешехода<br><span class="muted">Мы это уже делали: OpenCV, свёрточные сети</span></p></div>
+    <div class="card y step"><h3>💬 NLP — язык</h3><p style="font-size:21px;margin:0"><b>Вход:</b> текст<br><b>Примеры:</b> спам или нет, настроение отзыва, перевод, чат-бот, поиск<br><span class="muted">Начинаем сегодня</span></p></div>
+    <div class="card g step"><h3>🎯 Рекомендации</h3><p style="font-size:21px;margin:0"><b>Вход:</b> что человек смотрел, лайкал, покупал<br><b>Примеры:</b> лента ВК и YouTube, «с этим товаром покупают», плейлист в Яндекс Музыке</p></div>
+  </div>
+  <p class="step" style="margin-top:18px">Везде один и тот же трюк: превратить данные в <b>числа</b> (векторы), а дальше модель ищет в них закономерности.</p>
+  <aside class="notes">Попросите группу назвать по примеру к каждой области из своих телефонов. Подчеркните: картинка уже числа (пиксели), а текст — нет, это главная сложность NLP.</aside>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <span class="kicker">Наша задача</span>
+  <h2>Классификация твитов: позитив или негатив</h2>
+  <div class="cols">
+    <div>
+      <p>10 000 русских твитов. Метки ставили по смайликам: <code>:)</code> — позитив, <code>:(</code> — негатив. Смайлики мы <b>убрали</b>.</p>
+      <p class="step">Модель должна угадывать настроение <b>по словам</b>.</p>
+      <p class="step">Картинка — уже числа: пиксели. А текст? <b>«Привет» + 5 = ?</b></p>
+    </div>
+    <div>
+      <div class="tw">Добрый вечер, твиттертяне! Отличный был денёк! <b class="p">позитив</b></div>
+      <div class="tw">Началась учеба и постоянное мозгопромывание <b class="n">негатив</b></div>
+      <div class="tw">я только первый город прошёл <b class="n">негатив</b></div>
+    </div>
+  </div>
+  <aside class="notes">Третий твит — честно спорный: без смайлика и человек не угадает. Это объясняет, почему потом точность будет около 67%, а не 95%.</aside>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <span class="kicker">План</span>
+  <h2>Текст → числа → модель</h2>
+  <div class="flow">
+    <div class="box">твит<small>«Кот спит. Кот доволен»</small></div><span class="arr">→</span>
+    <div class="box b">токены<small>[кот, спит, кот, доволен]</small></div><span class="arr">→</span>
+    <div class="box y">вектор<small>[0 1 2 0 0 0 1 0]</small></div><span class="arr">→</span>
+    <div class="box g">модель<small>позитив / негатив</small></div>
+  </div>
+  <p class="step">Сегодня — как получить <b>вектор</b>. Способов несколько, от простого к умному:</p>
+  <p class="step big" style="text-align:center"><b>one-hot</b> → <b>мешок слов</b> → <b>TF-IDF</b> → <b>word2vec</b></p>
+  <aside class="notes">Этот слайд — карта занятия. Возвращайтесь к нему после каждого шага.</aside>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-demo="tok">
+  <span class="kicker">Шаг 1 · Токенизация</span>
+  <h2>Режем текст на слова</h2>
+  <div class="cols">
+    <div>
+      <p><b>Токен</b> — кусочек текста. У нас токен = слово.</p>
+      <ol style="font-size:22px">
+        <li>всё в <b>нижний регистр</b>: «Кот» = «кот»</li>
+        <li>берём только <b>буквы</b>: «денёк!» → «денёк»</li>
+      </ol>
+      <pre class="py">re.findall(r"[а-яё]+", text.lower())</pre>
+    </div>
+    <div>
+      <p class="muted" style="font-size:19px">Напишите свой твит:</p>
+      <input class="inp" id="tok-in" value="Отличный был денёк! Отличного вам вечера, друзья!">
+      <div class="toks" id="tok-out"></div>
+      <p class="muted" style="font-size:19px" id="tok-n"></p>
+    </div>
+  </div>
+  <aside class="notes">Покажите: «денёк» и «денька» остались разными словами. Это решает лемматизация (приведение к нормальной форме) — следующая тема LXP.</aside>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <span class="kicker">Шаг 2 · Словарь</span>
+  <h2>Нумеруем все разные слова</h2>
+  <div class="cols">
+    <div>
+      <div class="tw">Кот спит. Кот доволен</div>
+      <div class="tw">Пёс спит</div>
+      <div class="tw">не плохо, а хорошо</div>
+      <div class="tw">не хорошо, а плохо</div>
+    </div>
+    <div>
+      <table class="t"><tr><th>номер</th><th>слово</th><th>номер</th><th>слово</th></tr>
+        <tr><td>0</td><td>а</td><td>4</td><td>пёс</td></tr>
+        <tr><td>1</td><td>доволен</td><td>5</td><td>плохо</td></tr>
+        <tr><td>2</td><td>кот</td><td>6</td><td>спит</td></tr>
+        <tr><td>3</td><td>не</td><td>7</td><td>хорошо</td></tr>
+      </table>
+      <pre class="py step">vocab = sorted(set(all_words))
+word2idx = {w: i for i, w in enumerate(vocab)}</pre>
+    </div>
+  </div>
+  <p class="step">В 10 000 твитов разных слов — <b>24 121</b>.</p>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <span class="kicker">Шаг 3 · One-hot encoding (OHE)</span>
+  <h2>Слово → вектор из нулей и одной единицы</h2>
+  <table class="t vec">
+    <tr><th></th><th>а</th><th>доволен</th><th>кот</th><th>не</th><th>пёс</th><th>плохо</th><th>спит</th><th>хорошо</th></tr>
+    <tr><td>кот</td><td>0</td><td>0</td><td class="one">1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>спит</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="one">1</td><td>0</td></tr>
+    <tr><td>хорошо</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="one">1</td></tr>
+  </table>
+  <div class="cols" style="margin-top:18px">
+    <div class="card r step"><h3>Минус 1: огромный</h3><p style="font-size:21px;margin:0">Словарь твитов 24 121 слово → каждое слово это <b>24 121 число</b>, и только одна единица.</p></div>
+    <div class="card r step"><h3>Минус 2: не знает смысла</h3><p style="font-size:21px;margin:0">«хорошо» и «отлично» так же далеки, как «хорошо» и «кот». Все слова друг другу одинаково чужие.</p></div>
+  </div>
+  <aside class="notes">OHE используют и вне текста: категории (город, цвет, марка машины) → столбцы из 0 и 1. Спросите: как закодировать «день недели»?</aside>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-demo="bow">
+  <span class="kicker">Шаг 4 · Мешок слов (Bag of Words)</span>
+  <h2>Твит = сумма one-hot его слов</h2>
+  <p style="font-size:22px">Высыпали слова в мешок и посчитали, сколько каких. Длина вектора = размер словаря.</p>
+  <input class="inp" id="bow-a" value="Кот спит. Кот доволен">
+  <input class="inp" id="bow-b" value="не плохо, а хорошо" style="margin-top:10px">
+  <div id="bow-out" style="margin-top:14px"></div>
+  <aside class="notes">Впишите во второе поле «не хорошо, а плохо» — векторы совпадут с «не плохо, а хорошо». Это главный минус мешка слов.</aside>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <span class="kicker">Минусы мешка слов</span>
+  <h2>Что мешок теряет</h2>
+  <div class="cols">
+    <div class="card r"><h3>Порядок слов</h3>
+      <p style="font-size:21px;margin:0">«не <b>плохо</b>, а <b>хорошо</b>»<br>«не <b>хорошо</b>, а <b>плохо</b>»<br>→ <b>одинаковые</b> векторы, хотя смысл противоположный.</p></div>
+    <div class="card r step"><h3>Все слова равны</h3>
+      <p style="font-size:21px;margin:0">«и», «я», «в» есть почти в каждом твите и встречаются чаще всего. Но о настроении они <b>ничего не говорят</b>. А «болит» встречается редко, но важно.</p></div>
+  </div>
+  <p class="step" style="margin-top:18px">Как приглушить частые бесполезные слова? → <b>TF-IDF</b></p>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <span class="kicker">Шаг 5 · TF-IDF</span>
+  <h2>Важность = часто в этом твите × редко в остальных</h2>
+  <div class="cols">
+    <div>
+      <p style="font-size:22px"><b>TF</b> = сколько раз слово в твите / всего слов в твите</p>
+      <p style="font-size:22px"><b>IDF</b> = log( всего твитов / в скольких есть слово )</p>
+      <p style="font-size:22px"><b>TF-IDF</b> = TF × IDF</p>
+      <p class="step" style="font-size:21px">Слово во <b>всех</b> текстах: IDF = log(3/3) = <b>0</b> → обнулилось.<br>Слово в <b>одном</b>: IDF = log(3/1) ≈ <b>1.1</b> → важное.</p>
+    </div>
+    <div>
+      <div class="tw">кот спит и кот ест</div>
+      <div class="tw">пёс спит и пёс лает</div>
+      <div class="tw">кот и пёс играют</div>
+      <table class="t step" style="font-size:19px">
+        <tr><th>слово</th><th>в текстах</th><th>IDF</th></tr>
+        <tr><td>и</td><td>3 из 3</td><td>0</td></tr>
+        <tr><td>кот, пёс, спит</td><td>2 из 3</td><td>0.41</td></tr>
+        <tr><td>ест, лает, играют</td><td>1 из 3</td><td>1.10</td></tr>
+      </table>
+    </div>
+  </div>
+  <aside class="notes">Логарифм нужен, чтобы редкие слова не получали гигантский вес: в 10 000 твитов слово из одного твита дало бы 10 000, а с логарифмом — 9.2.</aside>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <span class="kicker">Шаг 6 · word2vec (идея)</span>
+  <h2>Слово узнаётся по соседям</h2>
+  <div class="cols">
+    <div>
+      <p style="font-size:22px">«Сегодня ___ погода»: подойдёт <b>хорошая</b>, <b>отличная</b>, <b>ужасная</b>. Слова с похожими соседями — похожи по смыслу.</p>
+      <p class="step" style="font-size:22px">word2vec — нейросеть, которая учится угадывать соседей слова. Побочный результат: у каждого слова <b>короткий вектор</b> (100–300 чисел), и похожие слова оказываются <b>рядом</b>.</p>
+      <p class="step" style="font-size:22px">Знаменитый пример:<br><code>король − мужчина + женщина ≈ королева</code></p>
+    </div>
+    <div class="plot step">
+      <i style="left:18%;top:20%;color:#1d8a52">отлично</i><i style="left:30%;top:30%;color:#1d8a52">хорошо</i><i style="left:20%;top:40%;color:#1d8a52">супер</i>
+      <i style="left:75%;top:22%;color:#d93a3f">ужасно</i><i style="left:84%;top:35%;color:#d93a3f">плохо</i><i style="left:70%;top:38%;color:#d93a3f">грустно</i>
+      <i style="left:35%;top:78%;color:#2a5bd7">кот</i><i style="left:50%;top:85%;color:#2a5bd7">пёс</i><i style="left:42%;top:68%;color:#2a5bd7">котёнок</i>
+    </div>
+  </div>
+  <aside class="notes">Это следующая тема LXP (Embedding). Сегодня только идея: one-hot — «все слова чужие», word2vec — «похожие слова рядом». Картинка схематичная: настоящие векторы 100-мерные.</aside>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <span class="kicker">Сравнение</span>
+  <h2>Четыре способа превратить текст в числа</h2>
+  <table class="t" style="font-size:20px">
+    <tr><th></th><th>что это</th><th>длина</th><th>смысл слов</th><th>порядок</th></tr>
+    <tr><td>one-hot</td><td>слово → одна 1</td><td>весь словарь</td><td>❌</td><td>—</td></tr>
+    <tr><td>мешок слов</td><td>твит → счётчики слов</td><td>весь словарь</td><td>❌</td><td>❌</td></tr>
+    <tr><td>TF-IDF</td><td>счётчики × редкость</td><td>весь словарь</td><td>❌</td><td>❌</td></tr>
+    <tr><td>word2vec</td><td>слово → вектор смысла</td><td>100–300</td><td>✅</td><td>—</td></tr>
+  </table>
+  <p class="step">Мешок слов и TF-IDF — простые, быстрые и для классификации твитов работают неплохо. С них и начнём практику.</p>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <span class="kicker">Пара 2 · Векторизация и классификатор</span>
+  <h2>Учим модель угадывать настроение</h2>
+  <div class="flow">
+    <div class="box">твиты<small>10 000</small></div><span class="arr">→</span>
+    <div class="box b">80% учимся<small>fit_transform</small></div>
+    <div class="box b">20% проверка<small>только transform</small></div><span class="arr">→</span>
+    <div class="box y">TF-IDF<small>24 тыс. чисел</small></div><span class="arr">→</span>
+    <div class="box g">1 нейрон<small>LogisticRegression</small></div>
+  </div>
+  <div class="cols">
+    <div class="card y step"><h3>Один нейрон</h3><p style="font-size:21px;margin:0">У каждого слова есть <b>вес</b>. «спасибо» +2, «болит» −2. Сумма весов слов твита больше нуля → позитив.</p></div>
+    <div class="card r step"><h3>Почему не 95%?</h3><p style="font-size:21px;margin:0">Метки ставили по смайликам, а «блин, опять дождь :)» — позитив. Честный результат на таких данных — <b>около 67%</b> (наугад 50%).</p></div>
+  </div>
+  <aside class="notes">fit только на обучающих: иначе словарь и IDF «подсмотрят» проверочные твиты. Аналогия: учить по билетам, которые будут на экзамене.</aside>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <span class="kicker">Итог</span>
+  <h2>Запомнить</h2>
+  <ol style="font-size:25px">
+    <li>Модель понимает только <b>числа</b> — текст надо векторизовать.</li>
+    <li><b>Токенизация</b> → <b>словарь</b> → вектор.</li>
+    <li><b>One-hot</b>: одна 1 на месте слова. Длинный, без смысла.</li>
+    <li><b>Мешок слов</b>: сколько раз каждое слово. Теряет порядок.</li>
+    <li><b>TF-IDF</b>: приглушает слова, которые есть везде.</li>
+    <li><b>word2vec</b>: похожие по смыслу слова — похожие векторы.</li>
+  </ol>
+  <p class="muted">Практика: <code>lesson1.ipynb</code> (мешок слов своими руками), <code>lesson2.ipynb</code> (TF-IDF и классификатор).</p>
+</section>
+
+</div>
+<script src="../shared/slides.js"></script>
+<script>
+const tokenize = s => s.toLowerCase().match(/[а-яё]+/g) || [];
+
+Deck.demos.tok = () => {
+  const inp = document.getElementById('tok-in'), out = document.getElementById('tok-out'), n = document.getElementById('tok-n');
+  const draw = () => {
+    const t = tokenize(inp.value);
+    out.innerHTML = t.map(w => `<span>${w}</span>`).join('');
+    n.textContent = `${t.length} токенов, разных: ${new Set(t).size}`;
+  };
+  inp.oninput = draw; draw();
+};
+
+Deck.demos.bow = () => {
+  const a = document.getElementById('bow-a'), b = document.getElementById('bow-b'), out = document.getElementById('bow-out');
+  const draw = () => {
+    const ta = tokenize(a.value), tb = tokenize(b.value);
+    const vocab = [...new Set([...ta, ...tb])].sort((x, y) => x.localeCompare(y, 'ru'));
+    const row = (name, t) => '<tr><td>' + name + '</td>' + vocab.map(w => {
+      const c = t.filter(x => x === w).length;
+      return `<td class="${c ? 'one' : ''}">${c}</td>`;
+    }).join('') + '</tr>';
+    const same = vocab.length && vocab.every(w => ta.filter(x => x === w).length === tb.filter(x => x === w).length);
+    out.innerHTML = '<table class="t vec"><tr><th></th>' + vocab.map(w => `<th>${w}</th>`).join('') + '</tr>'
+      + row('твит 1', ta) + row('твит 2', tb) + '</table>'
+      + (same ? '<p style="font-size:22px"><b>Векторы одинаковые!</b> Мешок слов не видит порядок.</p>' : '');
+  };
+  a.oninput = b.oninput = draw; draw();
+};
+
+// если слайд с демо открыт сразу по ссылке #N, движок мог показать его раньше, чем демо зарегистрированы
+const cur = document.querySelector('.slide.active');
+if (cur && Deck.demos[cur.dataset.demo]) Deck.demos[cur.dataset.demo](cur);
+</script>
+</body>
+</html>

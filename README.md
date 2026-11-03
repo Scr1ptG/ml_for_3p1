@@ -14,7 +14,8 @@
 | [`02-video-production`](02-video-production) | Что такое видео: кадры, FPS, сжатие, цвет + свой видео-продакшн | [slides](https://scr1ptg.github.io/ml_for_3p1/02-video-production/slides.html) | [открыть в Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/02-video-production/lesson.ipynb) |
 | [`03-faces`](03-faces) | Находим лица на видео: каскад Хаара, несколько лиц, видео из лиц | [slides](https://scr1ptg.github.io/ml_for_3p1/03-faces/slides.html) | [открыть в Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/03-faces/lesson.ipynb) |
 | [`04-colorize`](04-colorize) | Раскрашиваем чёрно-белое видео: Lab, автоэнкодер на PyTorch, аугментация | [slides](https://scr1ptg.github.io/ml_for_3p1/04-colorize/slides.html) | [открыть в Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/04-colorize/lesson.ipynb) |
-| [`05-control`](05-control) | Контрольная работа по работе с видео: камера, клавиши, каналы, поворот | — | локально, `check_camera.py` |
+| [`05-control`](05-control) | Контрольная работа по работе с видео: камера, клавиши, каналы, поворот | — | [открыть в Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/05-control/control.ipynb) |
+| [`06-text`](06-text) | Текст: токены, one-hot, мешок слов, TF-IDF, word2vec; классификация твитов | [slides](https://scr1ptg.github.io/ml_for_3p1/06-text/slides.html) | [пара 1](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/06-text/lesson1.ipynb) · [пара 2](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/06-text/lesson2.ipynb) |
 
 ## Устройство репозитория
 * `quiz/` — сайт квиза (общий для всех уроков). Формат вопросов — в [quiz/README.md](quiz/README.md).
