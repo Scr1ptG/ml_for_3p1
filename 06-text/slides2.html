@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Текст · Подготовка слов</title>
+<link rel="stylesheet" href="../shared/slides.css">
+<style>
+  .flow { display: flex; align-items: center; gap: 10px; justify-content: center; margin: 10px 0 20px; flex-wrap: wrap; }
+  .flow .box { border: 3px solid var(--ink); border-radius: 16px; padding: 10px 14px; background: #fff; box-shadow: var(--sh); font-weight: 900; font-size: 19px; text-align: center; min-width: 100px; }
+  .flow .box small { display: block; font-weight: 600; color: var(--muted); font-size: 14px; font-family: var(--mono); }
+  .flow .arr { font-size: 28px; font-weight: 900; }
+  .flow .box.y { background: #fff3c4; } .flow .box.g { background: #dff7ea; } .flow .box.b { background: #dbe9ff; } .flow .box.r { background: #ffd8d8; }
+  table.t { border-collapse: collapse; font-size: 21px; width: 100%; background: #fff; border: 3px solid var(--ink); border-radius: 14px; overflow: hidden; box-shadow: var(--sh); }
+  table.t th, table.t td { padding: 7px 12px; border-bottom: 2px solid var(--soft); text-align: left; }
+  table.t th { background: #fff3c4; }
+  .inp { width: 100%; font: 700 22px var(--mono); padding: 10px 14px; border: 3px solid var(--ink); border-radius: 12px; box-sizing: border-box; }
+  .toks { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; min-height: 40px; }
+  .toks span { font: 700 19px var(--mono); background: #dbe9ff; border: 2px solid var(--ink); border-radius: 10px; padding: 3px 9px; }
+  .toks span.off { background: #eee; color: #999; text-decoration: line-through; border-color: #bbb; }
+  .toks span.ch { background: #fff3c4; }
+  .lbl { font-size: 17px; font-weight: 900; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- 1 -->
+<section class="slide">
+  <span class="kicker">Раздел «Текст» · Пара 2</span>
+  <div class="cols wide-left grow" style="align-items:center">
+    <div>
+      <h1>Векторизация и подготовка слов</h1>
+      <p class="big muted">Стоп-слова, стемминг, лемматизация, n-граммы</p>
+      <p style="margin-top:22px">На прошлой паре превратили твиты в числа. Сегодня — как сделать эти числа <b>лучше</b>, ещё до модели.</p>
+    </div>
+    <div class="card y float"><h3>Вспомним</h3><p style="font-size:21px;margin:0">твит → токены → словарь → мешок слов / TF-IDF → модель<br><br>Точность на твитах: <b>~67%</b>. Словарь: <b>24 121</b> слово.</p></div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <span class="kicker">Что такое векторизация</span>
+  <h2>Любые данные → вектор чисел</h2>
+  <div class="cols" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card b"><h3>Картинка</h3><p style="font-size:20px;margin:0">уже числа: 28×28 пикселей → 784 числа</p></div>
+    <div class="card y"><h3>Категория</h3><p style="font-size:20px;margin:0">город «Казань» → one-hot<br><code>[0, 1, 0, 0]</code></p></div>
+    <div class="card g"><h3>Текст</h3><p style="font-size:20px;margin:0">мешок слов, TF-IDF, эмбеддинги</p></div>
+  </div>
+  <p class="step" style="margin-top:18px"><b>Векторизация</b> — правило, по которому объект превращается в вектор фиксированной длины. Модели всё равно, что было на входе: она видит только числа.</p>
+  <p class="step">Хорошая векторизация: <b>похожие</b> объекты → <b>похожие</b> векторы.</p>
+  <aside class="notes">Спросите: как векторизовать песню? Пользователя соцсети? Подводка к тому, что рекомендации тоже работают через векторы.</aside>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <span class="kicker">Проблема</span>
+  <h2>Одно слово — много форм</h2>
+  <div class="cols">
+    <div>
+      <p>В мешке слов это <b>6 разных</b> столбцов:</p>
+      <div class="toks"><span>денёк</span><span>денька</span><span>деньку</span><span>деньком</span><span>деньки</span><span>деньков</span></div>
+      <p class="step">Русский язык богат на формы: у глагола их бывает больше 100.</p>
+    </div>
+    <div class="card r step"><h3>Что из этого плохо</h3>
+      <ul style="font-size:21px;margin:0">
+        <li>словарь раздувается (24 тыс. слов);</li>
+        <li>модель видит «денёк» 30 раз, а «деньком» 2 раза — и не знает, что это одно и то же;</li>
+        <li>редкие формы почти не учатся.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="step">Решение — <b>привести слова к одной форме</b>. Два способа: стемминг и лемматизация.</p>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <span class="kicker">План подготовки текста</span>
+  <h2>Конвейер (pipeline)</h2>
+  <div class="flow">
+    <div class="box">твит</div><span class="arr">→</span>
+    <div class="box b">токены<small>lower + слова</small></div><span class="arr">→</span>
+    <div class="box r">стоп-слова<small>выкинуть «и», «в»</small></div><span class="arr">→</span>
+    <div class="box y">нормализация<small>стемминг / лемма</small></div><span class="arr">→</span>
+    <div class="box g">вектор<small>BoW / TF-IDF</small></div>
+  </div>
+  <p class="step">Каждый шаг <b>уменьшает словарь</b> и склеивает слова, которые означают одно и то же.</p>
+  <p class="step">Но каждый шаг может и <b>навредить</b> — дальше увидим, где.</p>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-demo="stop">
+  <span class="kicker">Шаг 1 · Стоп-слова</span>
+  <h2>Выкидываем служебные слова</h2>
+  <div class="cols">
+    <div>
+      <p style="font-size:22px"><b>Стоп-слова</b> — частые слова без собственного смысла: <code>и, в, на, я, что, это, а, но, не…</code></p>
+      <p style="font-size:22px">Их сотни, списки готовые (в библиотеке nltk для русского — 151 слово).</p>
+      <pre class="py">stop = {"и", "в", "на", "я", "а", "не", ...}
+words = [w for w in tokens if w not in stop]</pre>
+    </div>
+    <div>
+      <input class="inp" id="st-in" value="я не хочу идти в школу, а хочу спать">
+      <div class="toks" id="st-out"></div>
+      <p class="muted" style="font-size:19px" id="st-n"></p>
+    </div>
+  </div>
+  <aside class="notes">Покажите ловушку: «не» в стоп-списке. «я не хочу в школу» → «хочу школу». Для настроения «не» критично!</aside>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <span class="kicker">Осторожно</span>
+  <h2>Стоп-слова — не всегда мусор</h2>
+  <div class="cols">
+    <div class="card r"><h3>Настроение</h3><p style="font-size:21px;margin:0">«мне <b>не</b> нравится» → «нравится»<br>Смысл перевернулся. Для твитов «не» убирать <b>нельзя</b>.</p></div>
+    <div class="card g step"><h3>Тема текста</h3><p style="font-size:21px;margin:0">Спорт или политика? Тут «и», «в», «не» правда ничего не дают — убираем смело.</p></div>
+  </div>
+  <p class="step" style="margin-top:18px">А ещё TF-IDF и так <b>приглушает</b> слова, которые есть везде. Поэтому с TF-IDF стоп-слова часто не убирают вовсе.</p>
+  <p class="step"><b>Правило:</b> пробуем и смотрим на точность на проверке, а не верим на слово.</p>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-demo="stem">
+  <span class="kicker">Шаг 2а · Стемминг</span>
+  <h2>Отрезаем окончание по правилам</h2>
+  <div class="cols">
+    <div>
+      <p style="font-size:22px"><b>Стем</b> — «основа», то, что осталось после отрезания окончания. Алгоритм не знает слов, только список окончаний: <code>-ами, -ого, -ать, -ой, -а, -ы…</code></p>
+      <pre class="py">from nltk.stem.snowball import SnowballStemmer
+st = SnowballStemmer("russian")
+st.stem("котами")   # 'кот'</pre>
+      <p class="step" style="font-size:21px">✅ быстро, без словаря<br>❌ грубо: «шёл» и «идти» не склеит, бывает «стем» — не слово</p>
+    </div>
+    <div>
+      <p class="muted" style="font-size:19px">Упрощённый стеммер — впишите слова:</p>
+      <input class="inp" id="sm-in" value="котами коты котик денька деньком бежали бегу хорошая хорошего">
+      <div class="toks" id="sm-out"></div>
+    </div>
+  </div>
+  <aside class="notes">Демо упрощённое (небольшой список окончаний), настоящий Snowball сложнее. Покажите «бежали» → «беж», «бегу» → «бег»: формы одного глагола не склеились.</aside>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-demo="lem">
+  <span class="kicker">Шаг 2б · Лемматизация</span>
+  <h2>Ставим слово в словарную форму</h2>
+  <div class="cols">
+    <div>
+      <p style="font-size:22px"><b>Лемма</b> — начальная форма, как в словаре: существительное → им. падеж ед. ч., глагол → инфинитив.</p>
+      <pre class="py">import pymorphy3
+m = pymorphy3.MorphAnalyzer()
+m.parse("шёл")[0].normal_form   # 'идти'</pre>
+      <p class="step" style="font-size:21px">✅ точно: знает словарь и грамматику, «шёл» → «идти»<br>❌ медленнее, нужен словарь языка</p>
+    </div>
+    <div>
+      <p class="muted" style="font-size:19px">Мини-словарь на слайде (pymorphy знает ~400 тыс. слов):</p>
+      <input class="inp" id="lm-in" value="шёл котами денька бежали лучше люди хорошего">
+      <div class="toks" id="lm-out"></div>
+    </div>
+  </div>
+  <aside class="notes">pymorphy3 — для русского; для английского — spaCy / nltk WordNet. В Colab: !pip install pymorphy3.</aside>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <span class="kicker">Сравнение</span>
+  <h2>Стемминг или лемматизация?</h2>
+  <table class="t">
+    <tr><th>слово</th><th>стемминг</th><th>лемматизация</th></tr>
+    <tr><td>котами</td><td>кот</td><td>кот</td></tr>
+    <tr><td>хорошего</td><td>хорош</td><td>хороший</td></tr>
+    <tr><td>бежали / бегу</td><td>беж / бег ❌ разные</td><td>бежать / бежать ✅</td></tr>
+    <tr><td>шёл</td><td>шёл ❌</td><td>идти ✅</td></tr>
+    <tr><td>люди</td><td>люд</td><td>человек</td></tr>
+  </table>
+  <p class="step" style="margin-top:16px">Для русского обычно берут <b>лемматизацию</b> — у нас слишком много форм и чередований. Стемминг хорош для английского и когда нужна скорость.</p>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <span class="kicker">Шаг 3 · N-граммы</span>
+  <h2>Возвращаем кусочек порядка</h2>
+  <div class="cols">
+    <div>
+      <p style="font-size:22px"><b>N-грамма</b> — N соседних слов подряд.</p>
+      <p style="font-size:21px">«все не плохо»<br>униграммы: <code>все</code>, <code>не</code>, <code>плохо</code><br>биграммы: <code>все не</code>, <code>не плохо</code></p>
+      <pre class="py">TfidfVectorizer(ngram_range=(1, 2))</pre>
+    </div>
+    <div class="card y step"><h3>Плюс и минус</h3><p style="font-size:21px;margin:0">✅ «не плохо» — отдельный токен, модель может выучить, что он позитивный<br>❌ словарь растёт: на твитах 24 тыс. → <b>81 тыс.</b> столбцов</p></div>
+  </div>
+  <aside class="notes">На наших твитах ngram_range=(1,2) дал +2% для мешка слов. Это эксперимент из конца ноутбука.</aside>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <span class="kicker">Всё вместе</span>
+  <h2>Что даёт каждый шаг</h2>
+  <table class="t">
+    <tr><th>шаг</th><th>словарь</th><th>риск</th></tr>
+    <tr><td>lower + только буквы</td><td>меньше</td><td>теряем смайлики, «!!!»</td></tr>
+    <tr><td>стоп-слова</td><td>чуть меньше</td><td>теряем «не»</td></tr>
+    <tr><td>стемминг</td><td>сильно меньше</td><td>грубые ошибки</td></tr>
+    <tr><td>лемматизация</td><td>сильно меньше</td><td>медленно; теряем время/число</td></tr>
+    <tr><td>n-граммы</td><td>сильно больше</td><td>много редких столбцов</td></tr>
+  </table>
+  <p class="step" style="margin-top:16px">Мешок слов и TF-IDF не знают, что «отлично» ≈ «хорошо». Это умеют <b>эмбеддинги</b> — следующая тема.</p>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <span class="kicker">Итог</span>
+  <h2>Запомнить</h2>
+  <ol style="font-size:25px">
+    <li><b>Векторизация</b> — объект → вектор чисел фиксированной длины.</li>
+    <li><b>Стоп-слова</b> — частые служебные слова. Убирать осторожно: «не»!</li>
+    <li><b>Стемминг</b> — отрезать окончание по правилам: быстро, грубо.</li>
+    <li><b>Лемматизация</b> — словарная форма: «шёл» → «идти». Точнее, медленнее.</li>
+    <li><b>N-граммы</b> — пары слов возвращают немного порядка.</li>
+    <li>Всё проверяем <b>точностью на проверке</b>.</li>
+  </ol>
+  <p class="muted">Дальше — квиз «Текст. Векторизация и эмбеддинги».</p>
+</section>
+
+</div>
+<script src="../shared/slides.js"></script>
+<script>
+const tokenize = s => s.toLowerCase().match(/[а-яё]+/g) || [];
+const STOP = new Set('и в во не что он на я с со как а то все она так его но да ты к у же вы за бы по только ее мне было вот от меня еще нет о из ему теперь когда даже ну вдруг ли если уже или ни быть был него до вас нибудь опять уж вам ведь там потом себя ничего ей может они тут где есть надо ней для мы тебя их чем была сам чтоб без будто чего раз тоже себе под будет ж тогда кто этот того потому этого какой совсем ним здесь этом один почти мой тем чтобы нее сейчас были куда зачем всех никогда можно при наконец два об другой хоть после над больше тот через эти нас про всего них какая много разве три эту моя впрочем хорошо свою этой перед иногда лучше чуть том нельзя такой им более всегда конечно всю между'.split(' '));
+const ENDS = ['ами', 'ями', 'ого', 'его', 'ому', 'ему', 'ыми', 'ими', 'ать', 'ять', 'ить', 'али', 'яли', 'или', 'ала', 'ой', 'ей', 'ий', 'ый', 'ая', 'яя', 'ое', 'ее', 'ом', 'ем', 'ам', 'ям', 'ах', 'ях', 'ов', 'ев', 'ик', 'ки', 'ка', 'ку', 'ли', 'ла', 'у', 'ю', 'а', 'я', 'ы', 'и', 'е', 'о', 'ь'];
+const stem = w => { for (const e of ENDS) if (w.length - e.length >= 3 && w.endsWith(e)) return w.slice(0, -e.length); return w; };
+const LEM = { 'шёл': 'идти', 'шел': 'идти', 'шла': 'идти', 'идём': 'идти', 'котами': 'кот', 'коты': 'кот', 'котик': 'котик', 'кота': 'кот', 'денька': 'денёк', 'деньком': 'денёк', 'деньки': 'денёк', 'бежали': 'бежать', 'бегу': 'бежать', 'бежит': 'бежать', 'лучше': 'хороший', 'люди': 'человек', 'людей': 'человек', 'хорошего': 'хороший', 'хорошая': 'хороший', 'хочу': 'хотеть', 'спать': 'спать', 'школу': 'школа', 'идти': 'идти' };
+
+const chips = (el, items) => el.innerHTML = items.map(([w, cls, title]) => `<span class="${cls}" title="${title || ''}">${w}</span>`).join('');
+
+Deck.demos.stop = () => {
+  const inp = document.getElementById('st-in'), out = document.getElementById('st-out'), n = document.getElementById('st-n');
+  const draw = () => {
+    const t = tokenize(inp.value), kept = t.filter(w => !STOP.has(w));
+    chips(out, t.map(w => [w, STOP.has(w) ? 'off' : '']));
+    n.textContent = `осталось: «${kept.join(' ')}» (${kept.length} из ${t.length})`;
+  };
+  inp.oninput = draw; draw();
+};
+
+Deck.demos.stem = () => {
+  const inp = document.getElementById('sm-in'), out = document.getElementById('sm-out');
+  const draw = () => chips(out, tokenize(inp.value).map(w => { const s = stem(w); return [`${w} → ${s}`, s !== w ? 'ch' : '']; }));
+  inp.oninput = draw; draw();
+};
+
+Deck.demos.lem = () => {
+  const inp = document.getElementById('lm-in'), out = document.getElementById('lm-out');
+  const draw = () => chips(out, tokenize(inp.value).map(w => LEM[w] ? [`${w} → ${LEM[w]}`, 'ch'] : [`${w} → ?`, 'off', 'нет в мини-словаре']));
+  inp.oninput = draw; draw();
+};
+
+// если слайд с демо открыт сразу по ссылке #N, движок мог показать его раньше, чем демо зарегистрированы
+const cur = document.querySelector('.slide.active');
+if (cur && Deck.demos[cur.dataset.demo]) Deck.demos[cur.dataset.demo](cur);
+</script>
+</body>
+</html>
