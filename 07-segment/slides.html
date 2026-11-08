@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сегментация текста</title>
+<link rel="stylesheet" href="../shared/slides.css">
+<style>
+  table.t { border-collapse: collapse; font-size: 20px; width: 100%; background: #fff; border: 3px solid var(--ink); }
+  table.t th, table.t td { padding: 6px 11px; border-bottom: 2px solid var(--soft); text-align: left; }
+  table.t th { background: #fff3c4; }
+  .w { display: inline-block; text-align: center; border: 2px solid var(--ink); border-radius: 8px; padding: 5px 9px; margin: 3px; font-weight: 800; font-size: 21px; background: #fff; }
+  .w small { display: block; font: 700 14px var(--mono); color: var(--muted); }
+  .w.per { background: #ffd8d8; } .w.org { background: #dbe9ff; } .w.loc { background: #dff7ea; }
+  pre.c { font: 600 18px/1.4 var(--mono); background: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 12px 16px; margin: 8px 0; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<section class="slide">
+  <span class="kicker">Раздел «Текст»</span>
+  <h1>Сегментация текста</h1>
+  <p class="big muted">От постановки задачи до модели и оценки качества</p>
+  <aside class="notes">Сегодня уровень выше: проходим полный цикл ML-проекта на реальной разметке.</aside>
+</section>
+
+<section class="slide">
+  <span class="kicker">Карта задач</span>
+  <h2>Что делают с текстом</h2>
+  <table class="t">
+    <tr><th>Задача</th><th>Ответ модели</th><th>Пример</th></tr>
+    <tr><td><b>Классификация</b></td><td>класс на весь текст</td><td>спам, тональность</td></tr>
+    <tr><td><b>Сегментация / разметка слов</b></td><td>класс каждому слову</td><td>имена в договоре</td></tr>
+    <tr><td><b>Деление на фрагменты</b></td><td>границы частей</td><td>разделы документа, абзацы по темам</td></tr>
+    <tr><td><b>Поиск ответа</b></td><td>отрезок текста</td><td>вопрос по инструкции</td></tr>
+    <tr><td><b>Перевод, суммаризация</b></td><td>новый текст</td><td>краткий пересказ</td></tr>
+    <tr><td><b>Генерация</b></td><td>продолжение текста</td><td>чат-боты</td></tr>
+  </table>
+  <aside class="notes">Важно: термин «сегментация текста» используют в двух смыслах: разметка слов и деление на фрагменты. Мы практикуем первый.</aside>
+</section>
+
+<section class="slide">
+  <span class="kicker">Постановка</span>
+  <h2>Картинка: класс пикселю. Текст: класс слову</h2>
+  <p>
+    <span class="w per">Медведев<small>B-PER</small></span>
+    <span class="w">посетил<small>O</small></span>
+    <span class="w">завод<small>O</small></span>
+    <span class="w org">КамАЗ<small>B-ORG</small></span>
+    <span class="w">в<small>O</small></span>
+    <span class="w loc">Татарстане<small>B-LOC</small></span>
+  </p>
+  <div class="cols" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card"><h3>Вход</h3><p>N слов</p></div>
+    <div class="card"><h3>Выход</h3><p>N тегов</p></div>
+    <div class="card"><h3>Обучение</h3><p>ошибка на каждом слове</p></div>
+  </div>
+  <p>Частный случай называют <b>NER</b>, распознавание именованных сущностей.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Разметка</span>
+  <h2>Схема BIO: где сущность начинается</h2>
+  <p>
+    <span class="w per">Дмитрий<small>B-PER</small></span>
+    <span class="w per">Медведев<small>I-PER</small></span>
+    <span class="w">и<small>O</small></span>
+    <span class="w per">Владимир<small>B-PER</small></span>
+    <span class="w per">Путин<small>I-PER</small></span>
+  </p>
+  <p class="step"><b>B</b> начало, <b>I</b> продолжение, <b>O</b> вне сущности.</p>
+  <p class="step">Без B два человека подряд слились бы в одного.</p>
+  <p class="step">Нарушение: <code>I-ORG</code> после <code>O</code>. Простая сеть такое допускает, CRF-слой запрещает.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Где применяют</span>
+  <h2>Зачем бизнесу разметка слов</h2>
+  <div class="cols">
+    <div class="card b"><h3>Документы</h3><p>стороны, суммы и даты в договорах</p></div>
+    <div class="card y"><h3>Медицина</h3><p>диагнозы и препараты в картах</p></div>
+    <div class="card g"><h3>Поддержка</h3><p>номер заказа и город из обращения</p></div>
+    <div class="card r"><h3>Безопасность</h3><p>скрытие персональных данных</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <span class="kicker">Подходы</span>
+  <h2>Как решают: от правил к трансформерам</h2>
+  <table class="t">
+    <tr><th>Подход</th><th>Идея</th><th>Плюс</th><th>Минус</th></tr>
+    <tr><td>Правила, словари</td><td>регулярки, справочники</td><td>нужно мало данных</td><td>хрупко</td></tr>
+    <tr><td>CRF</td><td>признаки слова и соседей</td><td>быстро, понятно</td><td>признаки вручную</td></tr>
+    <tr><td><b>CNN</b></td><td>окно соседних слов</td><td>просто, быстро</td><td>видит только окно</td></tr>
+    <tr><td>BiLSTM + CRF</td><td>контекст с двух сторон</td><td>точнее</td><td>медленнее</td></tr>
+    <tr><td>BERT</td><td>внимание ко всему тексту</td><td>лучшее качество</td><td>нужны ресурсы</td></tr>
+  </table>
+  <p>На практике сегодня CNN: свёртки вы уже знаете. LSTM в следующей теме.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Инструменты</span>
+  <h2>Чем пользоваться</h2>
+  <div class="cols">
+    <div class="card"><h3>Готовые модели</h3><p><b>Natasha</b>, <b>spaCy</b>, <b>DeepPavlov</b>: русский NER из коробки</p></div>
+    <div class="card"><h3>Своё обучение</h3><p><b>PyTorch</b>, <b>Hugging Face Transformers</b></p></div>
+    <div class="card"><h3>Разметка данных</h3><p><b>Label Studio</b>, <b>Doccano</b></p></div>
+    <div class="card"><h3>Метрики и подбор</h3><p><b>seqeval</b>, <b>Optuna</b></p></div>
+  </div>
+  <p>Правило: сначала проверьте готовую модель, своя нужна для своих сущностей.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Наш проект</span>
+  <h2>Конвейер практики</h2>
+  <table class="t">
+    <tr><th>Шаг</th><th>Что делаем</th><th>Ловушка</th></tr>
+    <tr><td>EDA</td><td>классы, длины</td><td>85% слов имеют тег O</td></tr>
+    <tr><td>Разделение</td><td>80 / 10 / 10</td><td>делим до словаря</td></tr>
+    <tr><td>Предобработка</td><td>словарь, UNK, паддинг</td><td>паддинг не считаем в ошибке</td></tr>
+    <tr><td>Модель</td><td>Embedding → Conv1d → Linear</td><td>Conv1d ждёт другой порядок осей</td></tr>
+    <tr><td>Подбор</td><td>сетка по val</td><td>test не трогаем</td></tr>
+    <tr><td>Оценка</td><td>F1 на test</td><td>accuracy обманывает</td></tr>
+  </table>
+  <p>Данные: Collection3, 13 тыс. предложений из новостей; люди, организации, места.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Архитектура</span>
+  <h2>Свёртка идёт по словам</h2>
+<pre class="c">x        (батч, длина)             номера слов
+Embedding (батч, длина, 64)        вектор на слово
+transpose (батч, 64, длина)
+Conv1d×2  (батч, filters, длина)   окно kernel слов
+Linear    (батч, длина, 7)         7 оценок на слово</pre>
+  <p class="step">Отличие от классификации: нет усреднения, длина сохраняется.</p>
+  <p class="step"><code>padding=kernel//2</code> нужен, чтобы ответов было столько же, сколько слов.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Метрики</span>
+  <h2>Почему accuracy врёт</h2>
+  <div class="cols">
+    <div class="card r"><h3>Ленивая модель</h3><p>всё помечает O: accuracy около 85%, найдено 0 сущностей</p></div>
+    <div class="card g"><h3>F1</h3><p><code>P</code> = верные / найденные<br><code>R</code> = верные / существующие<br><code>F1 = 2PR / (P + R)</code></p></div>
+  </div>
+  <p class="step">В ноутбуке F1 считается <b>по словам</b>, макро-среднее без O.</p>
+  <p class="step">Строже считает <code>seqeval</code>: сущность верна, только если совпали все её слова.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Гиперпараметры</span>
+  <h2>Веса учит сеть, гиперпараметры выбираем мы</h2>
+  <table class="t">
+    <tr><th>Имя</th><th>Мало</th><th>Много</th></tr>
+    <tr><td><code>lr</code></td><td>учится долго</td><td>скачет, не сходится</td></tr>
+    <tr><td><code>emb_dim, filters</code></td><td>не хватает сил</td><td>переобучение, медленно</td></tr>
+    <tr><td><code>kernel</code></td><td>не видит соседей</td><td>размывает границы</td></tr>
+    <tr><td><code>dropout</code></td><td>переобучение</td><td>недообучение</td></tr>
+    <tr><td><code>batch</code></td><td>шумный шаг</td><td>медленные эпохи</td></tr>
+    <tr><td><code>epochs</code></td><td>недоучилась</td><td>переобучилась</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <span class="kicker">Подбор</span>
+  <h2>Как искать хорошие значения</h2>
+  <div class="cols" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card"><h3>Сетка</h3><p>все комбинации: 5 параметров по 3 значения = 243 запуска</p></div>
+    <div class="card"><h3>Случайный поиск</h3><p>лучше сетки при том же числе запусков: важных параметров обычно мало</p></div>
+    <div class="card"><h3>Optuna</h3><p>следующую попытку выбирает по прошлым результатам</p></div>
+  </div>
+  <p class="step">Начните с <code>lr</code>: он обычно влияет сильнее всего.</p>
+  <p class="step">Сравниваем по <b>val</b>. На <b>test</b> смотрим один раз, в самом конце.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Итог</span>
+  <h2>Что запомнить</h2>
+  <p class="step">Сегментация текста = класс каждому слову, схема BIO.</p>
+  <p class="step">Классы несбалансированы, поэтому F1, а не accuracy.</p>
+  <p class="step">Словарь только по train, паддинг вне ошибки.</p>
+  <p class="step">Val выбирает, test оценивает один раз.</p>
+  <p class="big">Открываем ноутбук →</p>
+</section>
+
+</div>
+<script src="../shared/slides.js"></script>
+</body>
+</html>

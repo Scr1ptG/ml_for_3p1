@@ -16,6 +16,8 @@
 | [`04-colorize`](04-colorize) | Раскрашиваем чёрно-белое видео: Lab, автоэнкодер на PyTorch, аугментация | [slides](https://scr1ptg.github.io/ml_for_3p1/04-colorize/slides.html) | [открыть в Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/04-colorize/lesson.ipynb) |
 | [`05-control`](05-control) | Контрольная работа по работе с видео: камера, клавиши, каналы, поворот | — | [открыть в Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/05-control/control.ipynb) |
 | [`06-text`](06-text) | Текст: токены, one-hot, мешок слов, TF-IDF, word2vec; классификация твитов | [пара 1](https://scr1ptg.github.io/ml_for_3p1/06-text/slides.html) · [пара 2](https://scr1ptg.github.io/ml_for_3p1/06-text/slides2.html) | [открыть в Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/06-text/lesson.ipynb) |
+| [`07-segment`](07-segment) | Текст: сегментация, BIO, Conv1d, гиперпараметры, F1 | [слайды](https://scr1ptg.github.io/ml_for_3p1/07-segment/slides.html) · [Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/07-segment/lesson.ipynb) |
+| [`08-text-exam`](08-text-exam) | Зачётная работа: BoW и Embedding на своём датасете | [Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/08-text-exam/exam.ipynb) |
 
 ## Устройство репозитория
 * `quiz/` — сайт квиза (общий для всех уроков). Формат вопросов — в [quiz/README.md](quiz/README.md).
