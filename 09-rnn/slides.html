@@ -20,6 +20,12 @@
   .bars div span { position: absolute; top: -26px; left: 0; right: 0; text-align: center; font: 700 15px var(--mono); }
   .ball { display: inline-block; width: 44px; height: 44px; border-radius: 50%; background: var(--a); border: 3px solid var(--ink); }
   .frame { display: inline-flex; align-items: center; justify-content: center; width: 150px; height: 110px; background: #fff; border: 3px solid var(--ink); border-radius: 12px; margin-right: 10px; position: relative; }
+  .belt { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+  .belt .line { flex: 1; height: 8px; background: var(--ink); border-radius: 4px; }
+  .belt .lbl { font-weight: 800; font-size: 20px; min-width: 170px; }
+  .belt .op { border: 3px solid var(--ink); border-radius: 50%; width: 92px; height: 92px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; box-shadow: 3px 3px 0 var(--ink); }
+  .belt .op small { font-size: 14px; font-weight: 700; }
+  .belt .op.r { background: #ffe5e5; } .belt .op.g { background: #dff7ea; } .belt .op.b { background: #e3eeff; border-radius: 14px; width: 120px; }
 </style>
 </head>
 <body>
@@ -29,7 +35,7 @@
   <span class="kicker">Раздел «Текст»</span>
   <h1>Рекуррентные сети</h1>
   <p class="big muted">Нейросеть, у которой есть память</p>
-  <p>RNN и LSTM: как читать текст по порядку</p>
+  <p>RNN, LSTM, GRU и Seq2Seq: как читать и писать текст по порядку</p>
   <aside class="notes">Тема трудная, поэтому идём от бытовых примеров к формулам, а формул почти нет.</aside>
 </section>
 
@@ -124,41 +130,187 @@
 
 <section class="slide">
   <span class="kicker">LSTM</span>
-  <h2>Память с ластиком и карандашом</h2>
-  <p>У LSTM есть отдельная <b>лента памяти</b>. Слова не переписывают её целиком, а аккуратно правят.</p>
-  <div class="cols c3">
-    <div class="card r step"><h3>🧽 Забыть</h3><p>что стереть с ленты</p><p class="muted">новая тема → стёрли старую</p></div>
-    <div class="card g step"><h3>✏️ Записать</h3><p>что добавить нового</p><p class="muted">«Англия» → запомнили</p></div>
-    <div class="card b step"><h3>🗣 Сказать</h3><p>что выдать сейчас</p><p class="muted">нужен язык → «английски»</p></div>
+  <h2>Почему простой RNN мало</h2>
+  <div class="cols">
+    <div class="card r"><h3>RNN</h3><p>одна заметка <code>h</code></p><p>каждое слово <b>переписывает</b> её целиком</p><p class="muted">через 20 слов начало стёрто</p></div>
+    <div class="card g"><h3>LSTM</h3><p>заметка <code>h</code> + <b>лента памяти</b> <code>c</code></p><p>слова только <b>правят</b> ленту: что-то стёрли, что-то дописали</p><p class="muted">важное живёт сотни шагов</p></div>
   </div>
+  <p class="step" style="margin-top:20px">LSTM — Long Short-Term Memory, «долгая краткосрочная память». Придумана в 1997 году именно против забывания.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">LSTM изнутри</span>
+  <h2>Лента памяти — это конвейер</h2>
+  <div class="belt">
+    <span class="lbl">старая лента c</span>
+    <span class="op r">×<small>забыть</small></span>
+    <span class="line"></span>
+    <span class="op g">+<small>записать</small></span>
+    <span class="line"></span>
+    <span class="lbl">новая лента c</span>
+  </div>
+  <div class="belt" style="margin-top:4px">
+    <span class="lbl" style="visibility:hidden">старая лента c</span>
+    <span style="flex:1"></span>
+    <span class="op b">→ h<small>сказать</small></span>
+    <span class="lbl">выход h</span>
+  </div>
+  <p class="step">Лента едет вдоль всего текста. На каждом слове с ней делают только две простые вещи: <b>умножают</b> (стирают часть) и <b>прибавляют</b> (дописывают).</p>
+  <p class="step">Никакой полной перезаписи нет, поэтому сигнал из начала текста доезжает до конца.</p>
 </section>
 
 <section class="slide">
   <span class="kicker">Вентиль</span>
   <h2>Вентиль — это кран от 0 до 1</h2>
-  <div class="cols">
-    <div class="card"><h3>0 — закрыт</h3><p>ничего не проходит: не стираем, не пишем</p></div>
-    <div class="card y"><h3>1 — открыт</h3><p>проходит всё</p></div>
+  <div class="cols c3">
+    <div class="card r"><h3>🧽 Забывания <code>f</code></h3><p>сколько <b>оставить</b> от старой ленты</p></div>
+    <div class="card g"><h3>✏️ Входной <code>i</code></h3><p>сколько <b>записать</b> нового</p></div>
+    <div class="card b"><h3>🗣 Выходной <code>o</code></h3><p>сколько ленты <b>показать</b> в <code>h</code></p></div>
   </div>
-  <p class="step" style="margin-top:20px">Сеть сама учится, когда открывать краны. Мы их не настраиваем.</p>
-  <p class="step">Если кран «забыть» закрыт, важное слово живёт на ленте <b>сотни шагов</b>.</p>
+  <p class="step" style="margin-top:20px">Каждый кран смотрит на текущее слово и прошлую заметку <code>h</code>, а потом выдаёт число через сигмоиду: 0 — закрыт, 1 — открыт.</p>
+  <p class="step">Когда открывать краны, сеть учится сама. Мы их не настраиваем.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Пример</span>
+  <h2>LSTM читает текст: что происходит с лентой</h2>
+  <table class="t">
+    <tr><th>Слово</th><th>🧽 забыть</th><th>✏️ записать</th><th>Лента после</th></tr>
+    <tr><td>Я жил в <b>Англии</b></td><td>—</td><td>страна = Англия</td><td>Англия</td></tr>
+    <tr><td>погода, друзья, лето…</td><td>закрыт</td><td>почти ничего</td><td>Англия</td></tr>
+    <tr><td>потом переехал во <b>Францию</b></td><td><b>открыт</b>: стереть Англию</td><td>страна = Франция</td><td>Франция</td></tr>
+    <tr><td>поэтому говорю по-…</td><td>закрыт</td><td>—</td><td>🗣 выход: «французски»</td></tr>
+  </table>
+  <p class="step" style="margin-top:16px">Простая RNN к концу помнила бы «лето» и «друзей», а не страну.</p>
+  <aside class="notes">Это упрощение: на деле лента — вектор из сотен чисел, и разные числа хранят разное. Но логика кранов именно такая.</aside>
+</section>
+
+<section class="slide">
+  <span class="kicker">Формулы, но простыми словами</span>
+  <h2>Один шаг LSTM</h2>
+<pre class="py sm"><span class="n">f</span> = σ(слово, h)          <span class="c"># 🧽 сколько оставить от ленты: 0…1</span>
+<span class="n">i</span> = σ(слово, h)          <span class="c"># ✏️ сколько записать: 0…1</span>
+<span class="n">g</span> = tanh(слово, h)       <span class="c">#    ЧТО записать: −1…1</span>
+<span class="hl">c = f · c + i · g</span>        <span class="c"># лента: стёрли часть, дописали новое</span>
+<span class="n">o</span> = σ(слово, h)          <span class="c"># 🗣 сколько показать</span>
+<span class="n">h</span> = o · tanh(c)          <span class="c"># новая заметка = выход шага</span></pre>
+  <p class="step" style="margin-top:16px">У каждой из четырёх формул с весами свои веса, поэтому LSTM в <b>4 раза</b> тяжелее простой RNN.</p>
+  <p class="step">Главная строка выделена: там <b>плюс</b>, а не перезапись. Поэтому LSTM не забывает.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">GRU</span>
+  <h2>GRU: облегчённая LSTM</h2>
+  <p>Gated Recurrent Unit, 2014 год. Нет отдельной ленты, всего <b>два</b> крана:</p>
+  <div class="cols">
+    <div class="card y"><h3>Обновления <code>z</code></h3><p>сколько памяти заменить новым</p><p class="muted">объединяет «забыть» и «записать» LSTM</p></div>
+    <div class="card p"><h3>Сброса <code>r</code></h3><p>сколько прошлого учесть, когда придумываем новое</p></div>
+  </div>
+<pre class="py sm step" style="margin-top:16px"><span class="n">h</span> = (<span class="n">1</span> − z) · h  +  z · новое      <span class="c"># z = 0: ничего не меняем, z = 1: пишем новое</span></pre>
+  <p class="step" style="margin-top:12px">Что не стёрли, то и осталось: одна ручка вместо двух.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Сравнение</span>
+  <h2>RNN, LSTM или GRU?</h2>
+  <table class="t">
+    <tr><th></th><th>RNN</th><th>LSTM</th><th>GRU</th></tr>
+    <tr><td>Краны</td><td>нет</td><td>3</td><td>2</td></tr>
+    <tr><td>Память</td><td><code>h</code></td><td><code>h</code> и лента <code>c</code></td><td><code>h</code></td></tr>
+    <tr><td>Параметров при 64 → 64</td><td>8 320</td><td>33 280</td><td>24 960</td></tr>
+    <tr><td>Длинный контекст</td><td>❌ забывает</td><td>✅</td><td>✅</td></tr>
+    <tr><td>Скорость</td><td>быстрая</td><td>медленнее всех</td><td>посередине</td></tr>
+    <tr><td>PyTorch</td><td><code>nn.RNN</code></td><td><code>nn.LSTM</code></td><td><code>nn.GRU</code></td></tr>
+  </table>
+  <p class="step" style="margin-top:14px">Правило: начните с <b>GRU</b> или <b>LSTM</b>, по качеству они обычно близки. Простую RNN — только для понимания.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Как применять</span>
+  <h2>Четыре схемы: сколько входов и выходов</h2>
+  <div class="cols">
+    <div class="card g"><h3>Много → один</h3><p>классификация текста, тональность</p><p class="muted">берём последнюю <code>h</code> · <b>наша практика</b></p></div>
+    <div class="card b"><h3>Много → много (поровну)</h3><p>тег каждому слову</p><p class="muted">берём весь <code>out</code> · <b>тема 7</b></p></div>
+    <div class="card y"><h3>Один → много</h3><p>генерация: подпись к картинке, музыка</p><p class="muted">ответ шага подаём на вход следующему</p></div>
+    <div class="card r"><h3>Много → много (разной длины)</h3><p>перевод, пересказ, чат-бот</p><p class="muted"><b>Seq2Seq</b> — дальше</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <span class="kicker">Seq2Seq</span>
+  <h2>Перевод: кодировщик и декодировщик</h2>
+  <div class="chain" style="gap:6px">
+    <div class="cell">я</div><div class="cell">люблю</div><div class="cell">кошек</div>
+    <span class="arr">→</span>
+    <div class="cell" style="background:#ffc93c;min-width:100px">вектор<small>смысл</small></div>
+    <span class="arr">→</span>
+    <div class="cell" style="background:#dff7ea">I</div><div class="cell" style="background:#dff7ea">love</div><div class="cell" style="background:#dff7ea">cats</div><div class="cell" style="background:#dff7ea;min-width:80px">&lt;EOS&gt;</div>
+  </div>
+  <div class="cols">
+    <div class="card step"><h3>Кодировщик (encoder)</h3><p>LSTM читает русскую фразу. Его последняя память — <b>смысл фразы</b>.</p></div>
+    <div class="card step"><h3>Декодировщик (decoder)</h3><p>Другая LSTM стартует с этого смысла и пишет английские слова по одному, пока не скажет <code>&lt;EOS&gt;</code>.</p></div>
+  </div>
+  <p class="step" style="margin-top:16px">Длина входа и выхода может быть разной: 3 слова → 3 слова, 5 → 8.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Seq2Seq</span>
+  <h2>Как декодировщик пишет ответ</h2>
+  <table class="t">
+    <tr><th>Шаг</th><th>Вход декодировщика</th><th>Выход</th></tr>
+    <tr><td>1</td><td><code>&lt;BOS&gt;</code> «начни»</td><td>I</td></tr>
+    <tr><td>2</td><td>I</td><td>love</td></tr>
+    <tr><td>3</td><td>love</td><td>cats</td></tr>
+    <tr><td>4</td><td>cats</td><td><code>&lt;EOS&gt;</code> «конец»</td></tr>
+  </table>
+  <p class="step" style="margin-top:14px"><b>При обучении</b> на вход даём правильное прошлое слово, а не догадку сети (teacher forcing): так учится быстрее.</p>
+  <p class="step"><b>При работе</b> подаём собственный ответ прошлого шага.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Seq2Seq в коде</span>
+  <h2>Вся идея в одном классе</h2>
+<pre class="py sm"><span class="k">class</span> <span class="f">Seq2Seq</span>(nn.Module):
+    <span class="k">def</span> <span class="f">__init__</span>(self):
+        <span class="k">super</span>().__init__()
+        self.emb_src = nn.Embedding(RU_VOCAB, <span class="n">64</span>)
+        self.emb_tgt = nn.Embedding(EN_VOCAB, <span class="n">64</span>)
+        self.encoder = nn.LSTM(<span class="n">64</span>, <span class="n">128</span>, batch_first=<span class="k">True</span>)
+        self.decoder = nn.LSTM(<span class="n">64</span>, <span class="n">128</span>, batch_first=<span class="k">True</span>)
+        self.head = nn.Linear(<span class="n">128</span>, EN_VOCAB)          <span class="c"># оценка каждого англ. слова</span>
+
+    <span class="k">def</span> <span class="f">forward</span>(self, src, tgt_in):
+        _, (h, c) = self.encoder(self.emb_src(src))           <span class="c"># смысл фразы</span>
+        out, _ = self.decoder(self.emb_tgt(tgt_in), (h, c))   <span class="c"># старт со смысла</span>
+        <span class="k">return</span> self.head(out)                           <span class="c"># (батч, длина, EN_VOCAB)</span></pre>
+  <p class="step" style="margin-top:12px">Ключ — <code>(h, c)</code> кодировщика передаём декодировщику как начальную память.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Предел Seq2Seq</span>
+  <h2>Узкое горлышко → внимание → трансформеры</h2>
+  <div class="cols c3">
+    <div class="card r step"><h3>Проблема</h3><p>смысл длинного абзаца сжат в <b>один</b> вектор</p></div>
+    <div class="card y step"><h3>Внимание (2014)</h3><p>декодировщик на каждом шаге <b>заглядывает</b> во все слова входа</p></div>
+    <div class="card g step"><h3>Трансформер (2017)</h3><p>оставили только внимание, без RNN. Так устроены GPT и BERT</p></div>
+  </div>
+  <p class="step" style="margin-top:20px">Схема «кодировщик → декодировщик» из Seq2Seq живёт в переводчиках до сих пор.</p>
 </section>
 
 <section class="slide">
   <span class="kicker">Код</span>
-  <h2>В PyTorch это два слоя</h2>
-<pre class="py sm"><span class="n">rnn</span>  = nn.<span class="f">RNN</span>(<span class="n">64</span>, <span class="n">64</span>, batch_first=<span class="k">True</span>)
-out, h = rnn(e)              <span class="c"># h: память после последнего слова</span>
-
-<span class="n">lstm</span> = nn.<span class="f">LSTM</span>(<span class="n">64</span>, <span class="n">64</span>, batch_first=<span class="k">True</span>)
-out, (h, c) = lstm(e)        <span class="c"># c: лента памяти</span>
-
-ответ = head(h[<span class="n">-1</span>])</pre>
-  <table class="t" style="margin-top:16px">
+  <h2>Полезные настройки слоёв</h2>
+<pre class="py sm">nn.<span class="f">GRU</span>(<span class="n">64</span>, <span class="n">64</span>, batch_first=<span class="k">True</span>)                <span class="c"># out, h — как у RNN</span>
+nn.<span class="f">LSTM</span>(<span class="n">64</span>, <span class="n">64</span>, batch_first=<span class="k">True</span>)               <span class="c"># out, (h, c)</span>
+nn.<span class="f">LSTM</span>(<span class="n">64</span>, <span class="n">64</span>, num_layers=<span class="n">2</span>, dropout=<span class="n">0.3</span>)       <span class="c"># стопка из двух слоёв</span>
+nn.<span class="f">LSTM</span>(<span class="n">64</span>, <span class="n">64</span>, bidirectional=<span class="k">True</span>)             <span class="c"># читает слева и справа</span></pre>
+  <table class="t" style="margin-top:14px">
     <tr><th>Keras в LXP</th><th>PyTorch у нас</th></tr>
-    <tr><td><code>SimpleRNN(n)</code> / <code>LSTM(n)</code></td><td><code>nn.RNN</code> / <code>nn.LSTM</code>, берём <code>h</code></td></tr>
+    <tr><td><code>SimpleRNN(n)</code> / <code>LSTM(n)</code> / <code>GRU(n)</code></td><td><code>nn.RNN</code> / <code>nn.LSTM</code> / <code>nn.GRU</code>, берём <code>h[-1]</code></td></tr>
     <tr><td><code>return_sequences=True</code></td><td>берём <code>out</code>: память после каждого слова</td></tr>
+    <tr><td><code>Bidirectional(LSTM(n))</code></td><td><code>bidirectional=True</code>, в <code>out</code> вдвое больше чисел</td></tr>
   </table>
+  <p class="step" style="margin-top:10px">Двусторонний слой хорош для классификации и разметки, но не для генерации: будущего там ещё нет.</p>
 </section>
 
 <section class="slide">
@@ -191,7 +343,8 @@ out, (h, c) = lstm(e)        <span class="c"># c: лента памяти</span>
   <h2>Что запомнить</h2>
   <p class="step">RNN читает по слову и несёт <b>память</b>, веса одни на все шаги.</p>
   <p class="step">Простая память <b>забывает</b> начало или <b>взрывается</b>.</p>
-  <p class="step">LSTM: лента памяти и три крана — забыть, записать, сказать.</p>
+  <p class="step">LSTM: лента памяти и три крана — забыть, записать, сказать. GRU: то же на двух кранах.</p>
+  <p class="step">Seq2Seq: кодировщик сжимает фразу в смысл, декодировщик пишет ответ по слову.</p>
   <p class="step">Для классификации берём последнюю память → <code>Linear</code>.</p>
   <p class="big">Открываем ноутбук →</p>
 </section>
