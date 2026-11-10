@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Рекуррентные сети</title>
+<link rel="stylesheet" href="../shared/slides.css">
+<style>
+  table.t { border-collapse: collapse; font-size: 22px; width: 100%; background: #fff; border: 3px solid var(--ink); }
+  table.t th, table.t td { padding: 7px 12px; border-bottom: 2px solid var(--soft); text-align: left; }
+  table.t th { background: #fff3c4; }
+  .chain { display: flex; align-items: center; gap: 10px; margin: 14px 0 18px; flex-wrap: nowrap; }
+  .cell { border: 3px solid var(--ink); border-radius: 14px; background: #ece9ff; box-shadow: 3px 3px 0 var(--ink); padding: 10px 14px; text-align: center; font-weight: 800; font-size: 20px; min-width: 120px; }
+  .cell small { display: block; font: 700 15px var(--mono); color: var(--muted); margin-top: 4px; }
+  .arr { font-size: 30px; font-weight: 900; }
+  .word { display: inline-block; border: 2px solid var(--ink); border-radius: 8px; padding: 4px 10px; background: #fff; font-weight: 800; font-size: 22px; margin: 3px; }
+  .word.hot { background: #ffc93c; }
+  .bars { display: flex; align-items: flex-end; gap: 8px; height: 190px; margin: 10px 0; }
+  .bars div { width: 56px; background: var(--b); border: 2px solid var(--ink); border-radius: 6px 6px 0 0; position: relative; }
+  .bars div span { position: absolute; top: -26px; left: 0; right: 0; text-align: center; font: 700 15px var(--mono); }
+  .ball { display: inline-block; width: 44px; height: 44px; border-radius: 50%; background: var(--a); border: 3px solid var(--ink); }
+  .frame { display: inline-flex; align-items: center; justify-content: center; width: 150px; height: 110px; background: #fff; border: 3px solid var(--ink); border-radius: 12px; margin-right: 10px; position: relative; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<section class="slide">
+  <span class="kicker">Раздел «Текст»</span>
+  <h1>Рекуррентные сети</h1>
+  <p class="big muted">Нейросеть, у которой есть память</p>
+  <p>RNN и LSTM: как читать текст по порядку</p>
+  <aside class="notes">Тема трудная, поэтому идём от бытовых примеров к формулам, а формул почти нет.</aside>
+</section>
+
+<section class="slide">
+  <span class="kicker">Проблема</span>
+  <h2>Прошлые сети не знают порядка</h2>
+  <div class="cols">
+    <div class="card"><h3>Собака укусила человека</h3><p class="muted">обычная новость</p></div>
+    <div class="card r"><h3>Человек укусил собаку</h3><p class="muted">сенсация</p></div>
+  </div>
+  <p class="step" style="margin-top:22px">Мешок слов для обеих фраз одинаковый: те же три слова.</p>
+  <p class="step">Среднее эмбеддингов тоже одинаковое. <b>Порядок потерян.</b></p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Разминка</span>
+  <h2>Куда движется мячик?</h2>
+  <div class="row">
+    <div class="frame"><span class="ball"></span></div>
+    <p class="big">→ ?</p>
+  </div>
+  <p class="step">По одному кадру не понять.</p>
+  <div class="row step" style="margin-top:10px">
+    <div class="frame"><span class="ball" style="position:absolute;left:12px"></span></div>
+    <div class="frame"><span class="ball"></span></div>
+    <div class="frame"><span class="ball" style="position:absolute;right:12px"></span></div>
+    <p class="big">→ вправо!</p>
+  </div>
+  <p class="step">Нужна <b>память о прошлом</b>. Текст — тоже последовательность.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Идея</span>
+  <h2>Читаем по слову и держим заметку в голове</h2>
+  <div class="chain">
+    <div class="cell">ячейка<small>«Сборная»</small></div><span class="arr">→</span>
+    <div class="cell">ячейка<small>«выиграла»</small></div><span class="arr">→</span>
+    <div class="cell">ячейка<small>«финал»</small></div><span class="arr">→</span>
+    <div class="cell" style="background:#dff7ea">спорт</div>
+  </div>
+  <p class="step">Стрелка между ячейками — это <b>память</b> <code>h</code>: короткая заметка «о чём текст».</p>
+  <p class="step">Ячейка одна и та же, просто применяется к каждому слову по очереди.</p>
+  <p class="step">Поэтому сеть читает текст <b>любой длины</b>.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Без формул</span>
+  <h2>Что делает ячейка на каждом шаге</h2>
+  <div class="card y"><p class="big" style="margin:0">новая память = смесь(старая память, новое слово)</p></div>
+  <div class="cols c3" style="margin-top:24px">
+    <div class="card step"><h3>Вход</h3><p>вектор слова из Embedding</p></div>
+    <div class="card step"><h3>Память</h3><p>вектор длины <code>hidden</code></p></div>
+    <div class="card step"><h3>Веса</h3><p>одни на все шаги, сеть учит их сама</p></div>
+  </div>
+  <p class="step" style="margin-top:18px">Для классификации берём <b>последнюю</b> память и ставим после неё <code>Linear</code>.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Игрушечный пример</span>
+  <h2>Память = старая × 0,5 + новое слово</h2>
+  <p>Первое слово = 1, остальные = 0. Что от него осталось?</p>
+  <div class="bars">
+    <div style="height:180px"><span>1</span></div>
+    <div style="height:90px"><span>0,5</span></div>
+    <div style="height:45px"><span>0,25</span></div>
+    <div style="height:22px"><span>0,13</span></div>
+    <div style="height:11px"><span>0,06</span></div>
+    <div style="height:6px"><span>0,03</span></div>
+  </div>
+  <p class="step">Через 10 слов осталось около <b>0,002</b>. Это <b>проблема забывания</b>.</p>
+  <p class="step">В ноутбуке вы напишете эту память сами, в одну строку.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Проблема забывания</span>
+  <h2>Короткий контекст RNN помнит, длинный — нет</h2>
+  <p>Москва — это столица <span class="word hot">России</span>: подсказка рядом, легко.</p>
+  <p class="step" style="margin-top:14px">Я часто бывал в <span class="word hot">Англии</span>, где так промозгло осенью, но невероятно комфортно летом. Все жители крайне приветливы. Я нашёл там много друзей. Поэтому я хорошо говорю по-…</p>
+  <p class="step big">Подсказка в начале, ответ в конце. Простая RNN её уже «забыла».</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Обратная беда</span>
+  <h2>Взрыв: если множитель больше 1</h2>
+  <table class="t">
+    <tr><th>Шаг</th><td>1</td><td>2</td><td>3</td><td>5</td><td>10</td><td>20</td></tr>
+    <tr><th>Память при × 2</th><td>1</td><td>3</td><td>7</td><td>31</td><td>1 023</td><td>1 048 575</td></tr>
+  </table>
+  <p class="step" style="margin-top:18px">Шаги обучения становятся огромными, и loss улетает: в ноутбуке LXP был <code>loss: 150734175731712</code>.</p>
+  <p class="step">Лекарство: <code>tanh</code> внутри ячейки и <b>обрезка градиента</b> <code>clip_grad_norm_</code>.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">LSTM</span>
+  <h2>Память с ластиком и карандашом</h2>
+  <p>У LSTM есть отдельная <b>лента памяти</b>. Слова не переписывают её целиком, а аккуратно правят.</p>
+  <div class="cols c3">
+    <div class="card r step"><h3>🧽 Забыть</h3><p>что стереть с ленты</p><p class="muted">новая тема → стёрли старую</p></div>
+    <div class="card g step"><h3>✏️ Записать</h3><p>что добавить нового</p><p class="muted">«Англия» → запомнили</p></div>
+    <div class="card b step"><h3>🗣 Сказать</h3><p>что выдать сейчас</p><p class="muted">нужен язык → «английски»</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <span class="kicker">Вентиль</span>
+  <h2>Вентиль — это кран от 0 до 1</h2>
+  <div class="cols">
+    <div class="card"><h3>0 — закрыт</h3><p>ничего не проходит: не стираем, не пишем</p></div>
+    <div class="card y"><h3>1 — открыт</h3><p>проходит всё</p></div>
+  </div>
+  <p class="step" style="margin-top:20px">Сеть сама учится, когда открывать краны. Мы их не настраиваем.</p>
+  <p class="step">Если кран «забыть» закрыт, важное слово живёт на ленте <b>сотни шагов</b>.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Код</span>
+  <h2>В PyTorch это два слоя</h2>
+<pre class="py sm"><span class="n">rnn</span>  = nn.<span class="f">RNN</span>(<span class="n">64</span>, <span class="n">64</span>, batch_first=<span class="k">True</span>)
+out, h = rnn(e)              <span class="c"># h: память после последнего слова</span>
+
+<span class="n">lstm</span> = nn.<span class="f">LSTM</span>(<span class="n">64</span>, <span class="n">64</span>, batch_first=<span class="k">True</span>)
+out, (h, c) = lstm(e)        <span class="c"># c: лента памяти</span>
+
+ответ = head(h[<span class="n">-1</span>])</pre>
+  <table class="t" style="margin-top:16px">
+    <tr><th>Keras в LXP</th><th>PyTorch у нас</th></tr>
+    <tr><td><code>SimpleRNN(n)</code> / <code>LSTM(n)</code></td><td><code>nn.RNN</code> / <code>nn.LSTM</code>, берём <code>h</code></td></tr>
+    <tr><td><code>return_sequences=True</code></td><td>берём <code>out</code>: память после каждого слова</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <span class="kicker">Практика</span>
+  <h2>Новости трёх категорий: RNN против LSTM</h2>
+  <table class="t">
+    <tr><th>Шаг</th><th>Ловушка</th></tr>
+    <tr><td>Перемешать и разделить</td><td>без перемешивания в val попадает один класс, val accuracy = 0</td></tr>
+    <tr><td>Нули добавить <b>слева</b></td><td>справа сеть в конце читает пустоту</td></tr>
+    <tr><td>RNN, 20 эпох</td><td>быстро забывает начало</td></tr>
+    <tr><td>LSTM, 100 эпох</td><td>переобучение: сохраняем лучшую эпоху по val</td></tr>
+    <tr><td>Test один раз</td><td>сравниваем две сети честно</td></tr>
+  </table>
+  <aside class="notes">В моём прогоне на test: RNN около 0,58, LSTM около 0,87. В ноутбуке LXP val accuracy = 0 из-за validation_split без перемешивания.</aside>
+</section>
+
+<section class="slide">
+  <span class="kicker">Где применяют</span>
+  <h2>Всё, где важен порядок</h2>
+  <div class="cols c3">
+    <div class="card"><h3>Текст</h3><p>перевод, генерация, чат-боты</p></div>
+    <div class="card"><h3>Звук</h3><p>распознавание речи, музыка</p></div>
+    <div class="card"><h3>Время</h3><p>курсы, погода, датчики</p></div>
+  </div>
+  <p class="step" style="margin-top:22px">Сегодня в больших моделях RNN заменили <b>трансформеры</b>: они видят весь текст сразу. Но идея памяти осталась.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Итог</span>
+  <h2>Что запомнить</h2>
+  <p class="step">RNN читает по слову и несёт <b>память</b>, веса одни на все шаги.</p>
+  <p class="step">Простая память <b>забывает</b> начало или <b>взрывается</b>.</p>
+  <p class="step">LSTM: лента памяти и три крана — забыть, записать, сказать.</p>
+  <p class="step">Для классификации берём последнюю память → <code>Linear</code>.</p>
+  <p class="big">Открываем ноутбук →</p>
+</section>
+
+</div>
+<script src="../shared/slides.js"></script>
+</body>
+</html>
