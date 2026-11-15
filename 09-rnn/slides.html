@@ -382,7 +382,8 @@ Deck.demos.mem = () => {
     const top = Math.max(...hs, 1);
     bars.innerHTML = hs.map(v => `<div class="${v > 10 ? 'hot' : ''}" style="height:${Math.max(2, v / top * 100)}%"><span>${v < 10 ? v.toFixed(2) : Math.round(v)}</span></div>`).join('');
     const last = hs[11];
-    if (last > 50) msg.textContent = '💥 Взрыв: память растёт без остановки';
+    if (last > 10) msg.textContent = '💥 Взрыв: память растёт без остановки';
+    else if (w > 1.02) msg.textContent = '📈 Растёт: каждое слово усиливает старую память';
     else if (mode === 'one' && last < 0.05) msg.textContent = '🫥 Забыла: от первого слова почти ничего не осталось';
     else if (mode === 'one' && w >= 0.95) msg.textContent = '🧠 Помнит первое слово до конца';
     else msg.textContent = mode === 'one' ? 'Первое слово постепенно стирается' : 'Память копится, но не взрывается';
