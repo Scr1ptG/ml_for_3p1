@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Генерация текстов</title>
+<link rel="stylesheet" href="../shared/slides.css">
+<style>
+  table.t { border-collapse: collapse; font-size: 22px; width: 100%; background: #fff; border: 3px solid var(--ink); }
+  table.t th, table.t td { padding: 7px 12px; border-bottom: 2px solid var(--soft); text-align: left; }
+  table.t th { background: #fff3c4; }
+  .chain { display: flex; align-items: center; gap: 8px; margin: 12px 0 18px; }
+  .cell { border: 3px solid var(--ink); border-radius: 12px; background: #ece9ff; box-shadow: 3px 3px 0 var(--ink); padding: 8px 12px; text-align: center; font-weight: 800; font-size: 20px; }
+  .cell small { display: block; font: 700 14px var(--mono); color: var(--muted); }
+  .arr { font-size: 28px; font-weight: 900; }
+  .phone { background: #fff; border: 3px solid var(--ink); border-radius: 22px; box-shadow: var(--sh); padding: 18px 22px; width: 520px; }
+  .phone .msg { font-size: 26px; margin-bottom: 14px; }
+  .sugg { display: flex; gap: 10px; }
+  .sugg span { flex: 1; text-align: center; background: var(--soft); border: 2px solid var(--ink); border-radius: 10px; padding: 8px; font-weight: 800; font-size: 22px; }
+  .sugg span.top { background: var(--c); }
+  .pbar { display: grid; grid-template-columns: 150px 1fr 70px; align-items: center; gap: 10px; margin: 7px 0; font-size: 22px; font-weight: 700; }
+  .pbar .b { height: 30px; background: var(--b); border: 2px solid var(--ink); border-radius: 6px; transition: width 0.25s; }
+  .pbar .v { font-family: var(--mono); font-size: 19px; }
+  #t-out { font: 700 22px var(--mono); background: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 10px 14px; min-height: 52px; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<section class="slide">
+  <span class="kicker">Раздел «Текст»</span>
+  <h1>Генерация текстов</h1>
+  <p class="big muted">Как нейросеть придумывает слова</p>
+  <p>От подсказок в телефоне до чат-бота на Seq2Seq</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Вы это видели</span>
+  <h2>Подсказки над клавиатурой</h2>
+  <div class="phone">
+    <div class="msg">Привет! Как …</div>
+    <div class="sugg"><span>ты</span><span class="top">дела</span><span>же</span></div>
+  </div>
+  <p class="step" style="margin-top:22px">Телефон <b>угадывает следующее слово</b>. Нажмите подсказку — он угадает ещё одно.</p>
+  <p class="step">Если жать подсказки подряд, получится целая фраза. Это и есть <b>генерация текста</b>.</p>
+  <aside class="notes">Попросите студентов открыть телефон и понажимать среднюю подсказку 10 раз подряд. Прочитайте вслух, что вышло.</aside>
+</section>
+
+<section class="slide">
+  <span class="kicker">Главная идея</span>
+  <h2>Генерация = угадать следующее слово. Повторить.</h2>
+  <div class="chain">
+    <div class="cell">я</div><span class="arr">→</span>
+    <div class="cell">не<small>угадали</small></div><span class="arr">→</span>
+    <div class="cell">знаю<small>угадали</small></div><span class="arr">→</span>
+    <div class="cell">где<small>угадали</small></div><span class="arr">→</span>
+    <div class="cell">он<small>угадали</small></div>
+  </div>
+  <p class="step">Каждое новое слово добавляем к тексту и снова спрашиваем: «а что дальше?»</p>
+  <p class="step big">ChatGPT работает так же. Только угадывает намного лучше.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Самый простой способ</span>
+  <h2>Т9 на счётчиках: что идёт после слова?</h2>
+  <p>Считаем по 12 тысячам диалогов из фильмов, какие слова шли после «как»:</p>
+  <table class="t">
+    <tr><th>После «как»</th><th>Сколько раз</th><th>Вероятность</th></tr>
+    <tr><td>же</td><td>120</td><td>40%</td></tr>
+    <tr><td>ты</td><td>95</td><td>32%</td></tr>
+    <tr><td>дела</td><td>45</td><td>15%</td></tr>
+    <tr><td>вы</td><td>40</td><td>13%</td></tr>
+  </table>
+  <p class="step" style="margin-top:14px">Никакой нейросети: просто таблица частот. В ноутбуке вы соберёте её в одну строку.</p>
+  <aside class="notes">Числа на слайде условные, для иллюстрации. Настоящие студенты увидят в ноутбуке.</aside>
+</section>
+
+<section class="slide">
+  <span class="kicker">Ловушка</span>
+  <h2>Всегда брать самое частое — плохая идея</h2>
+  <div class="card r"><p class="big" style="margin:0">я не знаю что я не знаю что я не знаю…</p></div>
+  <p class="step" style="margin-top:22px">Жадный выбор <b>зацикливается</b>: из одного слова всегда выходит одно и то же.</p>
+  <p class="step">Люди так не говорят. Нужна <b>случайность</b>: частые слова — чаще, редкие — иногда.</p>
+</section>
+
+<section class="slide" data-demo="temp">
+  <span class="kicker">Температура</span>
+  <h2>Ручка «смелости»: температура</h2>
+  <div class="cols wide-left">
+    <div>
+      <div id="t-bars"></div>
+      <label class="ctl">Температура: <b id="t-val">1.0</b>
+        <input type="range" id="t-range" min="0.1" max="3" step="0.1" value="1"></label>
+    </div>
+    <div>
+      <button class="btn primary" id="t-gen">🎲 Сгенерировать</button>
+      <p style="font-size:20px;margin-top:12px">«Как …»</p>
+      <div id="t-out"></div>
+    </div>
+  </div>
+  <p style="margin-top:12px">Мало (0.2): всегда «же», скучно. Много (2.5): «вы» и «дела» не хуже, весело и бессвязно.</p>
+  <aside class="notes">Покрутите ползунок вживую. Спросите: какую температуру поставили бы для юридического документа, а какую для стихов?</aside>
+</section>
+
+<section class="slide">
+  <span class="kicker">Предел Т9</span>
+  <h2>Т9 не умеет отвечать</h2>
+  <div class="cols">
+    <div class="card r"><h3>Что видит Т9</h3><p>только <b>одно</b> предыдущее слово</p><p class="muted">вопрос ему безразличен</p></div>
+    <div class="card g"><h3>Что нужно боту</h3><p>прочитать <b>весь вопрос</b>, понять смысл и только потом писать ответ</p></div>
+  </div>
+  <p class="step" style="margin-top:22px">Читать текст с памятью умеет LSTM (прошлая тема). Значит, нужно две LSTM: одна <b>слушает</b>, другая <b>говорит</b>.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Seq2Seq</span>
+  <h2>Как работает переводчик-синхронист</h2>
+  <div class="cols">
+    <div class="card b step"><h3>👂 Кодировщик</h3><p>дослушивает фразу до конца и держит смысл в голове</p><p class="muted">LSTM читает вопрос → память <code>(h, c)</code></p></div>
+    <div class="card g step"><h3>🗣 Декодировщик</h3><p>по смыслу произносит ответ слово за словом</p><p class="muted">LSTM стартует с <code>(h, c)</code> и пишет ответ</p></div>
+  </div>
+  <p class="step" style="margin-top:20px">Seq2Seq = Sequence to Sequence, «последовательность в последовательность». Длины вопроса и ответа могут быть разными.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Seq2Seq</span>
+  <h2>Схема чат-бота</h2>
+  <div class="chain">
+    <div class="cell">как</div><div class="cell">дела</div>
+    <span class="arr">→</span>
+    <div class="cell" style="background:#ffc93c">(h, c)<small>смысл</small></div>
+    <span class="arr">→</span>
+    <div class="cell" style="background:#dff7ea">&lt;BOS&gt;</div><span class="arr">→</span>
+    <div class="cell" style="background:#dff7ea">нормально</div><span class="arr">→</span>
+    <div class="cell" style="background:#dff7ea">&lt;EOS&gt;</div>
+  </div>
+  <table class="t">
+    <tr><th>Служебное слово</th><th>Значит</th></tr>
+    <tr><td><code>&lt;BOS&gt;</code></td><td>«начни ответ»: первое слово для декодировщика</td></tr>
+    <tr><td><code>&lt;EOS&gt;</code></td><td>«ответ закончен»: здесь останавливаемся</td></tr>
+    <tr><td><code>&lt;PAD&gt;</code> / <code>&lt;UNK&gt;</code></td><td>пустое место / незнакомое слово</td></tr>
+  </table>
+  <aside class="notes">В Keras-ноутбуке LXP это теги &lt;START&gt; и &lt;END&gt;.</aside>
+</section>
+
+<section class="slide">
+  <span class="kicker">Обучение</span>
+  <h2>Учим со «шпаргалкой» (teacher forcing)</h2>
+  <p>Декодировщику на каждом шаге даём <b>правильное</b> прошлое слово, а он угадывает следующее:</p>
+  <table class="t">
+    <tr><th>Шаг</th><th>1</th><th>2</th><th>3</th></tr>
+    <tr><td>Вход декодировщика</td><td><code>&lt;BOS&gt;</code></td><td>ждёт</td><td>вас</td></tr>
+    <tr><td>Должен угадать</td><td>ждёт</td><td>вас</td><td><code>&lt;EOS&gt;</code></td></tr>
+  </table>
+  <p class="step" style="margin-top:16px">Выход — это вход, <b>сдвинутый на одно слово</b>. В ноутбуке это одна функция в две строки.</p>
+  <p class="step">Так сеть учится быстро: одна ошибка не ломает весь ответ.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Ответ</span>
+  <h2>Как бот пишет ответ</h2>
+  <ol style="font-size:26px;line-height:1.5;margin:0 0 14px;padding-left:34px">
+    <li>Кодировщик читает вопрос → память</li>
+    <li class="step">Даём декодировщику <code>&lt;BOS&gt;</code> → оценки всех слов</li>
+    <li class="step">Выбираем слово: самое вероятное или случайно с температурой</li>
+    <li class="step">Подаём выбранное слово обратно → следующее слово</li>
+    <li class="step">Пока не выпадет <code>&lt;EOS&gt;</code> или не кончится лимит</li>
+  </ol>
+  <p class="step big">Шпаргалки больше нет: бот опирается на свои же слова.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Код</span>
+  <h2>Seq2Seq в PyTorch: главное — передать память</h2>
+<pre class="py sm"><span class="k">class</span> <span class="f">Seq2Seq</span>(nn.Module):
+    <span class="k">def</span> <span class="f">__init__</span>(self, vocab):
+        <span class="k">super</span>().__init__()
+        self.emb = nn.Embedding(vocab, <span class="n">128</span>)
+        self.encoder = nn.LSTM(<span class="n">128</span>, <span class="n">256</span>, batch_first=<span class="k">True</span>)
+        self.decoder = nn.LSTM(<span class="n">128</span>, <span class="n">256</span>, batch_first=<span class="k">True</span>)
+        self.head = nn.Linear(<span class="n">256</span>, vocab)
+
+    <span class="k">def</span> <span class="f">forward</span>(self, q, dec_in):
+        _, (h, c) = self.encoder(self.emb(q))               <span class="c"># смысл вопроса</span>
+        out, _ = self.decoder(self.emb(dec_in), (h, c))     <span class="c"># старт со смысла</span>
+        <span class="k">return</span> self.head(out)</pre>
+  <table class="t" style="margin-top:14px">
+    <tr><th>Keras в LXP</th><th>PyTorch у нас</th></tr>
+    <tr><td><code>LSTM(150, return_state=True)</code></td><td><code>out, (h, c) = lstm(x)</code> — состояние есть всегда</td></tr>
+    <tr><td><code>initial_state=encoderStates</code></td><td>второй аргумент: <code>decoder(x, (h, c))</code></td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <span class="kicker">Что получилось</span>
+  <h2>Наш бот после 30 эпох</h2>
+  <table class="t">
+    <tr><th>Вы</th><th>Бот (строго)</th><th>Бот (температура 0.8)</th></tr>
+    <tr><td>привет</td><td>что ты здесь делаешь</td><td>ева они говорят не попасть</td></tr>
+    <tr><td>ты кто</td><td>я я</td><td>я белый кот</td></tr>
+    <tr><td>где мы</td><td>нигде</td><td>нигде</td></tr>
+    <tr><td>как дела</td><td>да сочинил</td><td>в чем дело</td></tr>
+  </table>
+  <p class="step" style="margin-top:16px">Похоже на реплики из кино. Смысла немного, но форма ответа уже человеческая.</p>
+  <aside class="notes">Это реальный прогон решения на CPU. У студентов ответы будут другими: случайная инициализация и сэмплирование.</aside>
+</section>
+
+<section class="slide">
+  <span class="kicker">Почему так</span>
+  <h2>Почему бот часто говорит «я не знаю»</h2>
+  <div class="cols c3">
+    <div class="card step"><h3>Частые ответы</h3><p>«да», «нет», «не знаю» подходят почти к любому вопросу</p></div>
+    <div class="card step"><h3>Мало данных</h3><p>12 тысяч пар — капля. GPT читал триллионы слов</p></div>
+    <div class="card step"><h3>Узкое горлышко</h3><p>весь вопрос сжат в один вектор <code>(h, c)</code></p></div>
+  </div>
+  <p class="step" style="margin-top:20px">Лекарства: больше данных → <b>внимание</b> (декодировщик заглядывает во все слова вопроса) → <b>трансформеры</b>.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Где применяют</span>
+  <h2>Генерация вокруг нас</h2>
+  <div class="cols">
+    <div class="card"><h3>💬 Чат-боты</h3><p>поддержка, ассистенты</p></div>
+    <div class="card"><h3>🌍 Переводчики</h3><p>Seq2Seq родился именно здесь</p></div>
+    <div class="card"><h3>📰 Тексты</h3><p>новости, описания товаров</p></div>
+    <div class="card"><h3>💻 Код</h3><p>подсказки в редакторе кода</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <span class="kicker">Задание LXP</span>
+  <h2>Свой бот на своём датасете</h2>
+  <table class="t">
+    <tr><th>Этап</th><th>Что делаем</th></tr>
+    <tr><td>1. Датасет</td><td>пары «вопрос → ответ», около 10 тысяч: интернет, свои переписки, разговорник</td></tr>
+    <tr><td>2. Очистка</td><td>убрать смайлики, ссылки, мусор</td></tr>
+    <tr><td>3. Коды</td><td>токены → номера, <code>&lt;BOS&gt;</code> и <code>&lt;EOS&gt;</code></td></tr>
+    <tr><td>4. Обучение</td><td>Seq2Seq из ноутбука</td></tr>
+    <tr><td>5. Проверка</td><td>поговорить с ботом</td></tr>
+  </table>
+  <p class="step" style="margin-top:12px">Для продвинутых: разговорник с переводами → свой переводчик.</p>
+</section>
+
+<section class="slide">
+  <span class="kicker">Итог</span>
+  <h2>Что запомнить</h2>
+  <p class="step">Генерация = угадать следующее слово и повторить.</p>
+  <p class="step">Жадный выбор зацикливается, <b>температура</b> добавляет смелости.</p>
+  <p class="step">Seq2Seq: кодировщик слушает, декодировщик говорит, между ними память <code>(h, c)</code>.</p>
+  <p class="step">Учим со шпаргалкой, отвечаем сами — от <code>&lt;BOS&gt;</code> до <code>&lt;EOS&gt;</code>.</p>
+  <p class="big">Открываем ноутбук →</p>
+</section>
+
+</div>
+<script src="../shared/slides.js"></script>
+<script>
+const T_WORDS = [["же", 120], ["ты", 95], ["дела", 45], ["вы", 40]];
+const T_NEXT = { "же": ["так", "ты", "это"], "ты": ["здесь", "сюда", "мог"], "дела": ["идут", "у вас", "в школе"], "вы": ["сюда", "смеете", "там"] };
+function tProbs(t) {
+  const p = T_WORDS.map(([, c]) => Math.pow(c, 1 / t)), s = p.reduce((a, b) => a + b, 0);
+  return p.map(x => x / s);
+}
+Deck.demos.temp = () => {
+  const r = document.getElementById('t-range'), val = document.getElementById('t-val');
+  const bars = document.getElementById('t-bars'), out = document.getElementById('t-out');
+  const draw = () => {
+    const t = +r.value, p = tProbs(t);
+    val.textContent = t.toFixed(1);
+    bars.innerHTML = T_WORDS.map(([w], i) =>
+      `<div class="pbar"><span>как ${w}</span><div class="b" style="width:${Math.max(2, p[i] * 100)}%"></div><span class="v">${Math.round(p[i] * 100)}%</span></div>`).join('');
+  };
+  document.getElementById('t-gen').onclick = () => {
+    const p = tProbs(+r.value); let x = Math.random(), i = 0;
+    while (i < p.length - 1 && x > p[i]) { x -= p[i]; i++; }
+    const w = T_WORDS[i][0], n = T_NEXT[w];
+    out.textContent = `как ${w} ${n[Math.floor(Math.random() * n.length)]}…`;
+  };
+  r.oninput = draw; draw(); out.textContent = '';
+};
+const cur = document.querySelector('.slide.active');
+if (cur && Deck.demos[cur.dataset.demo]) Deck.demos[cur.dataset.demo](cur);
+</script>
+</body>
+</html>
