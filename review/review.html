@@ -324,10 +324,8 @@ function slider(el, label, min, max, step, value, fmtv = v => v) {
 
 WIDGETS.padding = (q, el) => {
   const r = slider(el, 'padding', 0, 5, 1, 0);
-  const f = h('div', { className: 'formula' }); el.append(f);
+  el.append(h('div', { className: 'formula', textContent: 'выход = ⌊(вход + 2·padding − kernel_size) / stride⌋ + 1' }));
   const out = p => Math.floor((64 + 2 * p - 3) / 2) + 1;
-  const draw = () => { const p = +r.value; f.textContent = `выход = ⌊(64 + 2·${p} − 3) / 2⌋ + 1 = ${out(p)}`; };
-  r.addEventListener('input', draw); draw();
   return { ready: () => true, check: () => out(+r.value) === 32, given: () => r.value, lock: () => r.disabled = true };
 };
 
