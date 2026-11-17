@@ -20,6 +20,7 @@
 | [`08-text-exam`](08-text-exam) | Зачётная работа: BoW и Embedding на своём датасете | [Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/08-text-exam/exam.ipynb) |
 | [`09-rnn`](09-rnn) | Текст: рекуррентные сети, RNN и LSTM на новостях | [слайды](https://scr1ptg.github.io/ml_for_3p1/09-rnn/slides.html) · [Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/09-rnn/lesson.ipynb) |
 | [`10-textgen`](10-textgen) | Текст: генерация, Т9, температура, Seq2Seq-чат-бот | [слайды](https://scr1ptg.github.io/ml_for_3p1/10-textgen/slides.html) · [Colab](https://colab.research.google.com/github/Scr1ptG/ml_for_3p1/blob/main/10-textgen/lesson.ipynb) |
+| [`review`](review) | Большое повторение: изображения, видео, текст. Расчёты, сборка кода, ползунки, секундомер | [открыть тест](https://scr1ptg.github.io/ml_for_3p1/review/review.html) | — |
 
 ## Устройство репозитория
 * `quiz/` — сайт квиза (общий для всех уроков). Формат вопросов — в [quiz/README.md](quiz/README.md).

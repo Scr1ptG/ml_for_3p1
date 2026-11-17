@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Большое повторение</title>
+<style>
+  :root {
+    --bg: #fff6e9; --ink: #1f1b2e; --muted: #6b6680; --soft: #f3ece0; --card: #fff;
+    --primary: #6c5ce7; --ok: #2fb36d; --bad: #e5484d; --y: #ffc93c; --b: #4d96ff;
+    --mono: Consolas, "Cascadia Mono", "Courier New", monospace;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg) radial-gradient(circle at 1px 1px, rgba(31,27,46,.07) 1.5px, transparent 0) 0 0 / 22px 22px; color: var(--ink); min-height: 100vh; }
+  button, input { font: inherit; color: inherit; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 60px; }
+  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+  header .chip { font-weight: 800; padding: 6px 14px; border: 3px solid var(--ink); border-radius: 999px; background: var(--y); box-shadow: 3px 3px 0 var(--ink); }
+  header .grow { flex: 1; }
+  header .stat { font: 700 18px var(--mono); background: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 4px 12px; }
+  .progress { height: 10px; background: #fff; border: 2px solid var(--ink); border-radius: 99px; overflow: hidden; margin-bottom: 18px; }
+  .progress div { height: 100%; background: var(--primary); transition: width .3s; }
+  .card { background: var(--card); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 5px 5px 0 var(--ink); padding: 24px 28px; }
+  h1 { font-size: 40px; margin: 0 0 12px; font-weight: 900; }
+  h2 { font-size: 26px; margin: 0 0 14px; line-height: 1.3; }
+  p, li { font-size: 18px; line-height: 1.5; }
+  .muted { color: var(--muted); }
+  code { font-family: var(--mono); background: rgba(31,27,46,.08); padding: 1px 6px; border-radius: 6px; font-size: .92em; }
+  pre.code { font: 16px/1.55 var(--mono); background: #1f1b2e; color: #f4f0ff; border-radius: 12px; padding: 12px 16px; white-space: pre; overflow-x: auto; margin: 10px 0; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: 3px solid var(--ink); border-radius: 12px; background: #fff; box-shadow: 3px 3px 0 var(--ink); font-weight: 800; cursor: pointer; font-size: 17px; }
+  .btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
+  .btn.primary { background: var(--primary); color: #fff; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .actions { display: flex; gap: 12px; margin-top: 20px; align-items: center; }
+  .opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 12px 16px; border: 3px solid var(--ink); border-radius: 12px; background: #fff; cursor: pointer; font-size: 18px; }
+  .opt.sel { background: #ece9ff; }
+  .opt.right { background: #dff7ea; border-color: var(--ok); }
+  .opt.wrong { background: #ffe5e5; border-color: var(--bad); }
+  input.num, input.name { font: 700 22px var(--mono); padding: 10px 14px; border: 3px solid var(--ink); border-radius: 12px; width: 280px; }
+  input.name { font-family: inherit; width: 100%; max-width: 420px; }
+  .hint { background: #fff3c4; border: 2px dashed var(--ink); border-radius: 12px; padding: 10px 14px; margin-top: 12px; font-size: 17px; }
+  .fb { margin-top: 16px; padding: 14px 18px; border-radius: 12px; border: 3px solid; font-size: 17px; line-height: 1.5; }
+  .fb.ok { background: #dff7ea; border-color: var(--ok); }
+  .fb.no { background: #ffe5e5; border-color: var(--bad); }
+  .ord-label { font-weight: 800; margin: 14px 0 6px; }
+  .ord-box { min-height: 52px; border: 3px dashed var(--ink); border-radius: 12px; padding: 8px; background: #fbf8ff; }
+  .ord-line { display: block; width: 100%; text-align: left; font: 15px/1.4 var(--mono); white-space: pre; background: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 6px 10px; margin: 4px 0; cursor: pointer; }
+  .ord-line:hover { background: #fff3c4; }
+  .ord-box .ord-line { background: #1f1b2e; color: #f4f0ff; }
+  .ord-box .ord-line:hover { background: #3a3352; }
+  .ord-box .ord-line .n { color: #8f88b0; margin-right: 10px; }
+  .lock .ord-line, .lock .opt { pointer-events: none; }
+  label.ctl { display: block; font-weight: 700; font-size: 18px; margin: 10px 0; }
+  label.ctl b { font-family: var(--mono); }
+  input[type=range] { width: 100%; accent-color: var(--primary); }
+  canvas { display: block; border: 3px solid var(--ink); border-radius: 12px; background: #fff; max-width: 100%; }
+  .canv-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .formula { font: 700 20px var(--mono); background: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 10px 14px; margin-top: 8px; }
+  table.res { border-collapse: collapse; width: 100%; font-size: 18px; margin: 12px 0; }
+  table.res th, table.res td { border-bottom: 2px solid var(--soft); padding: 8px 10px; text-align: left; }
+  table.res th { background: #fff3c4; }
+  .codebox { font: 700 17px var(--mono); background: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 12px; word-break: break-all; }
+  .rev { border-left: 6px solid var(--ok); background: #fff; padding: 10px 14px; margin: 10px 0; border-radius: 0 12px 12px 0; }
+  .rev.no { border-color: var(--bad); }
+  .rev p { margin: 4px 0; font-size: 16px; }
+  .big { font-size: 56px; font-weight: 900; margin: 6px 0; }
+  .secgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 16px 0; }
+  .secgrid div { background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 12px; text-align: center; font-weight: 800; }
+  a { color: var(--primary); }
+  textarea { width: 100%; font: 15px var(--mono); border: 3px solid var(--ink); border-radius: 12px; padding: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+'use strict';
+const DATA = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob('eyJzZWN0aW9ucyI6IHsiaW1nIjogIvCflrwg0JjQt9C+0LHRgNCw0LbQtdC90LjRjyIsICJ2aWQiOiAi8J+OrCDQktC40LTQtdC+IiwgInR4dCI6ICLwn5OdINCi0LXQutGB0YIifSwgInF1ZXN0aW9ucyI6IFt7InNlYyI6ICJpbWciLCAidHlwZSI6ICJudW0iLCAidGV4dCI6ICLQptCy0LXRgtC90YPRjiDQutCw0YDRgtC40L3QutGDIDY0w5c2NCAoUkdCKSDQv9C+0LTQsNGO0YIg0LIg0L/QvtC70L3QvtGB0LLRj9C30L3Rg9GOINGB0LXRgtGMINGH0LXRgNC10LcgYEZsYXR0ZW5gLiDQodC60L7Qu9GM0LrQviDRh9C40YHQtdC7INC/0L7Qu9GD0YfQsNC10YIg0L/QtdGA0LLRi9C5INGB0LvQvtC5PyIsICJhbnN3ZXIiOiAxMjI4OCwgImV4cGxhaW4iOiAiNjQgwrcgNjQgwrcgMyA9IDEyIDI4ODog0LrQsNC20LTRi9C5INC/0LjQutGB0LXQu9GMINC00LDRkdGCINGC0YDQuCDRh9C40YHQu9CwLCDQv9C+INC+0LTQvdC+0LzRgyDQvdCwINC60LDQvdCw0LsuIiwgInB0cyI6IDJ9LCB7InNlYyI6ICJpbWciLCAidHlwZSI6ICJudW0iLCAidGV4dCI6ICLQlNCw0LvRjNGI0LUg0YHRgtC+0LjRgiBgbm4uTGluZWFyKDEyMjg4LCAxMjgpYC4g0KHQutC+0LvRjNC60L4g0YMg0Y3RgtC+0LPQviDRgdC70L7RjyDQvtCx0YPRh9Cw0LXQvNGL0YUg0L/QsNGA0LDQvNC10YLRgNC+0LI/IiwgImhpbnQiOiAi0JLQtdGB0LA6INCy0YXQvtC0IMOXINCy0YvRhdC+0LQuINCd0LUg0LfQsNCx0YPQtNGM0YLQtSDRgdC80LXRidC10L3QuNGPIChiaWFzKS4iLCAiYW5zd2VyIjogMTU3Mjk5MiwgImV4cGxhaW4iOiAiMTIgMjg4IMK3IDEyOCA9IDEgNTcyIDg2NCDQstC10YHQsCArIDEyOCDRgdC80LXRidC10L3QuNC5ID0gMSA1NzIgOTkyLiDQn9C+0Y3RgtC+0LzRgyDQtNC70Y8g0LrQsNGA0YLQuNC90L7QuiDQsdC10YDRg9GCINGB0LLRkdGA0YLQutC4OiDQv9C+0LvQvdC+0YHQstGP0LfQvdGL0Lkg0YHQu9C+0Lkg0L7Qs9GA0L7QvNC90YvQuS4iLCAicHRzIjogMn0sIHsic2VjIjogImltZyIsICJ0eXBlIjogIm51bSIsICJ0ZXh0IjogItCh0LrQvtC70YzQutC+INC+0LHRg9GH0LDQtdC80YvRhSDQv9Cw0YDQsNC80LXRgtGA0L7QsiDRgyBgbm4uQ29udjJkKDMsIDE2LCBrZXJuZWxfc2l6ZT0zKWA/IiwgImhpbnQiOiAi0JrQsNC20LTRi9C5INC40LcgMTYg0YTQuNC70YzRgtGA0L7QsiDRgdC80L7RgtGA0LjRgiDQvdCwINCy0YHQtSAzINCy0YXQvtC00L3Ri9GFINC60LDQvdCw0LvQsCDQvtC60L3QvtC8IDPDlzMsINC/0LvRjtGBINGDINC60LDQttC00L7Qs9C+INGE0LjQu9GM0YLRgNCwINGB0LLQvtGRINGB0LzQtdGJ0LXQvdC40LUuIiwgImFuc3dlciI6IDQ0OCwgImV4cGxhaW4iOiAiMTYgwrcgMyDCtyAzIMK3IDMgPSA0MzIg0LLQtdGB0LAgKyAxNiDRgdC80LXRidC10L3QuNC5ID0gNDQ4LiDQkiDRgtGL0YHRj9GH0Lgg0YDQsNC3INC80LXQvdGM0YjQtSwg0YfQtdC8INGDIExpbmVhciDQstGL0YjQtS4iLCAicHRzIjogMn0sIHsic2VjIjogImltZyIsICJ0eXBlIjogIm51bSIsICJ0ZXh0IjogItCS0YXQvtC0IDMyw5czMi4g0KHQvdCw0YfQsNC70LAgYENvbnYyZChrZXJuZWxfc2l6ZT01LCBzdHJpZGU9MSwgcGFkZGluZz0wKWAsINC/0L7RgtC+0LwgYE1heFBvb2wyZCgyKWAuINCa0LDQutC+0Lkg0YDQsNC30LzQtdGAINGB0YLQvtGA0L7QvdGLINC90LAg0LLRi9GF0L7QtNC1PyIsICJoaW50IjogItCh0LLRkdGA0YLQutCwINCx0LXQtyDQvtGC0YHRgtGD0L/QsCDRg9C80LXQvdGM0YjQsNC10YIg0YHRgtC+0YDQvtC90YMg0L3QsCBrZXJuZWwg4oiSIDEuINCf0YPQu9C40L3QsyAyINC00LXQu9C40YIg0L/QvtC/0L7Qu9Cw0LwuIiwgImFuc3dlciI6IDE0LCAiZXhwbGFpbiI6ICIzMiDiiJIgNSArIDEgPSAyOCwg0LfQsNGC0LXQvCAyOCAvIDIgPSAxNC4iLCAicHRzIjogMn0sIHsic2VjIjogImltZyIsICJ0eXBlIjogInNsaWRlciIsICJ3aWRnZXQiOiAicGFkZGluZyIsICJ0ZXh0IjogItCS0YXQvtC0IDY0w5c2NCwgYENvbnYyZChrZXJuZWxfc2l6ZT0zLCBzdHJpZGU9MilgLiDQn9C+0LTQsdC10YDQuNGC0LUgYHBhZGRpbmdgLCDRh9GC0L7QsdGLINCy0YvRhdC+0LQg0YHRgtCw0Lsg0YDQvtCy0L3QviAzMsOXMzIuIiwgImV4cGxhaW4iOiAi4oyKKDY0ICsgMsK3MSDiiJIgMykgLyAy4oyLICsgMSA9IDMyLiDQn9GA0LggcGFkZGluZyA9IDAg0L/QvtC70YPRh9C40YLRgdGPIDMxOiDQutGA0LDQudC90LjQuSDRgdGC0L7Qu9Cx0LXRhiDQvdC1INC/0L7QvNC10YnQsNC10YLRgdGPINCyINGI0LDQsy4iLCAicHRzIjogMn0sIHsic2VjIjogImltZyIsICJ0eXBlIjogInNsaWRlciIsICJ3aWRnZXQiOiAidGhyZXNob2xkIiwgInRleHQiOiAi0J/QvtC00LHQtdGA0LjRgtC1INC/0L7RgNC+0LMg0LHQuNC90LDRgNC40LfQsNGG0LjQuDog0YbQuNGE0YDQsCDQtNC+0LvQttC90LAg0L7RgdGC0LDRgtGM0YHRjyDQsdC10LvQvtC5INGG0LXQu9C40LrQvtC8LCDQsCDRgdC10YDRi9C1INC/0Y/RgtC90LAg0YjRg9C80LAg4oCUINC40YHRh9C10LfQvdGD0YLRjC4iLCAiZXhwbGFpbiI6ICLQqNGD0Lwg0YHQstC10YLQu9C10LUg0YTQvtC90LAsINC90L4g0YLQtdC80L3QtdC1INGG0LjRhNGA0YsuINCf0L7RgNC+0LMg0LTQvtC70LbQtdC9INCx0YvRgtGMINCy0YvRiNC1INGB0LDQvNC+0LPQviDRj9GA0LrQvtCz0L4g0YjRg9C80LAg0Lgg0L3QuNC20LUg0YHQsNC80L7Qs9C+INGC0ZHQvNC90L7Qs9C+INC/0LjQutGB0LXQu9GPINGG0LjRhNGA0YsuIiwgInB0cyI6IDJ9LCB7InNlYyI6ICJpbWciLCAidHlwZSI6ICJzbGlkZXIiLCAid2lkZ2V0IjogImxyIiwgInRleHQiOiAi0J/QvtC00LHQtdGA0LjRgtC1IGxlYXJuaW5nIHJhdGU6IGxvc3Mg0LTQvtC70LbQtdC9INC+0L/Rg9GB0YLQuNGC0YzRgdGPINC90LjQttC1IDAsMDEg0LfQsCAyMCDRjdC/0L7RhSDQuCDQvdC1INGB0LrQsNC60LDRgtGMLiIsICJleHBsYWluIjogItCh0LvQuNGI0LrQvtC8INC80LDQu9C10L3RjNC60LjQuSDRiNCw0LMg4oCUINGB0LXRgtGMINC/0L7Qu9C30ZHRgiDQuCDQvdC1INGD0YHQv9C10LLQsNC10YIuINCh0LvQuNGI0LrQvtC8INCx0L7Qu9GM0YjQvtC5IOKAlCDQv9C10YDQtdGB0LrQsNC60LjQstCw0LXRgiDQvNC40L3QuNC80YPQvDogbG9zcyDRgdC60LDRh9C10YIg0LjQu9C4INGD0LvQtdGC0LDQtdGCINCy0LLQtdGA0YUuIiwgInB0cyI6IDJ9LCB7InNlYyI6ICJpbWciLCAidHlwZSI6ICJvcmRlciIsICJ0ZXh0IjogItCh0L7QsdC10YDQuNGC0LUg0L7QsdGD0YfQsNGO0YnQuNC5INGG0LjQutC7IFB5VG9yY2guINCe0LTQvdCwINGB0YLRgNC+0LrQsCDQu9C40YjQvdGP0Y8uIiwgImxpbmVzIjogWyJmb3IgeGIsIHliIGluIGxvYWRlcjoiLCAiICAgIHByZWQgPSBtb2RlbCh4YikiLCAiICAgIGxvc3MgPSBsb3NzX2ZuKHByZWQsIHliKSIsICIgICAgb3B0aW1pemVyLnplcm9fZ3JhZCgpIiwgIiAgICBsb3NzLmJhY2t3YXJkKCkiLCAiICAgIG9wdGltaXplci5zdGVwKCkiXSwgImFjY2VwdCI6IFtbMCwgMSwgMiwgMywgNCwgNV0sIFswLCAzLCAxLCAyLCA0LCA1XSwgWzAsIDEsIDMsIDIsIDQsIDVdXSwgImV4dHJhIjogWyIgICAgbG9zcy5zdGVwKCkiXSwgImV4cGxhaW4iOiAi0J/QvtGA0Y/QtNC+0Lo6INC/0YDQtdC00YHQutCw0LfQsNC90LjQtSDihpIg0L7RiNC40LHQutCwIOKGkiDQvtCx0L3Rg9C70LjRgtGMINGB0YLQsNGA0YvQtSDQs9GA0LDQtNC40LXQvdGC0Ysg4oaSIGJhY2t3YXJkIOKGkiBzdGVwLiB6ZXJvX2dyYWQg0LzQvtC20L3QviDQv9C+0YHRgtCw0LLQuNGC0Ywg0Lgg0LIg0L3QsNGH0LDQu9C+INGG0LjQutC70LAsINCz0LvQsNCy0L3QvtC1IOKAlCDQtNC+IGJhY2t3YXJkLiDQoyBsb3NzINC90LXRgiDQvNC10YLQvtC00LAgc3RlcC4iLCAicHRzIjogMn0sIHsic2VjIjogImltZyIsICJ0eXBlIjogImNob2ljZSIsICJ0ZXh0IjogItCh0LXRgtGMINGB0LXQs9C80LXQvdGC0LjRgNGD0LXRgiDQutCw0YDRgtC40L3QutC4IDEyOMOXMTI4INC90LAgMyDQutC70LDRgdGB0LAgKNGE0L7QvSwg0LrQvtGI0LrQsCwg0YHQvtCx0LDQutCwKS4g0JHQsNGC0Ycg0LjQtyA4INC60LDRgNGC0LjQvdC+0LouINCa0LDQutC+0Lkg0YTQvtGA0LzRiyDQstGL0YXQvtC0INGB0LXRgtC4PyIsICJvcHRpb25zIjogWyIoOCwgMykiLCAiKDgsIDEyOCwgMTI4KSIsICIoOCwgMywgMTI4LCAxMjgpIiwgIig4LCAxMjggwrcgMTI4IMK3IDMpIl0sICJjb3JyZWN0IjogMiwgImV4cGxhaW4iOiAi0KHQtdCz0LzQtdC90YLQsNGG0LjRjyDQtNCw0ZHRgiDQvtGG0LXQvdC60YMg0LrQsNC20LTQvtCz0L4g0LrQu9Cw0YHRgdCwINC00LvRjyDQutCw0LbQtNC+0LPQviDQv9C40LrRgdC10LvRjzog0LHQsNGC0Ycgw5cg0LrQu9Cw0YHRgdGLIMOXINCy0YvRgdC+0YLQsCDDlyDRiNC40YDQuNC90LAuIiwgInB0cyI6IDF9LCB7InNlYyI6ICJpbWciLCAidHlwZSI6ICJjaG9pY2UiLCAidGV4dCI6ICLQmtCw0LrQsNGPINCw0YPQs9C80LXQvdGC0LDRhtC40Y8g0LLRgNC10LTQvdCwINC00LvRjyDRgNCw0YHQv9C+0LfQvdCw0LLQsNC90LjRjyDRgNGD0LrQvtC/0LjRgdC90YvRhSDRhtC40YTRgD8iLCAib3B0aW9ucyI6IFsi0KHQtNCy0LjQsyDQvdCwIDIg0L/QuNC60YHQtdC70Y8iLCAi0J/QvtCy0L7RgNC+0YIg0L3QsCAxMMKwIiwgItCf0L7QstC+0YDQvtGCINC90LAgMTgwwrAiLCAi0J3QtdCx0L7Qu9GM0YjQvtC1INGA0LDRgdGC0Y/QttC10L3QuNC1Il0sICJjb3JyZWN0IjogMiwgImV4cGxhaW4iOiAi0J/QvtGB0LvQtSDQv9C+0LLQvtGA0L7RgtCwINC90LAgMTgwwrAg0YjQtdGB0YLRkdGA0LrQsCDRgdGC0LDQvdC+0LLQuNGC0YHRjyDQtNC10LLRj9GC0LrQvtC5LCDQsCDQvNC10YLQutCwINC+0YHRgtCw0ZHRgtGB0Y8gwqs2wrsuINCQ0YPQs9C80LXQvdGC0LDRhtC40Y8g0L3QtSDQtNC+0LvQttC90LAg0LzQtdC90Y/RgtGMINC/0YDQsNCy0LjQu9GM0L3Ri9C5INC+0YLQstC10YIuIiwgInB0cyI6IDF9LCB7InNlYyI6ICJpbWciLCAidHlwZSI6ICJjaG9pY2UiLCAidGV4dCI6ICLQotC+0YfQvdC+0YHRgtGMINC90LAgdHJhaW4gMCw5OSwg0L3QsCB2YWwgMCw3MSwg0LAgdmFsIGxvc3Mg0YDQsNGB0YLRkdGCINGBIDgt0Lkg0Y3Qv9C+0YXQuCDQuNC3IDMwLiDQp9GC0L4g0YDQsNC30YPQvNC90LXQtSDQstGB0LXQs9C+INGB0LTQtdC70LDRgtGMPyIsICJvcHRpb25zIjogWyLQo9GH0LjRgtGMINC10YnRkSAzMCDRjdC/0L7RhSIsICLQo9Cy0LXQu9C40YfQuNGC0YwgbGVhcm5pbmcgcmF0ZSIsICLQktC30Y/RgtGMINCy0LXRgdCwIDgt0Lkg0Y3Qv9C+0YXQuCDQuCDQtNC+0LHQsNCy0LjRgtGMIERyb3BvdXQg0LjQu9C4INCw0YPQs9C80LXQvdGC0LDRhtC40Y4iLCAi0KPQsdGA0LDRgtGMIHZhbCwg0L7QvSDQvNC10YjQsNC10YIiXSwgImNvcnJlY3QiOiAyLCAiZXhwbGFpbiI6ICLQrdGC0L4g0L/QtdGA0LXQvtCx0YPRh9C10L3QuNC1LiDQm9GD0YfRiNC40LUg0LLQtdGB0LAg4oCUINC00L4g0YDQvtGB0YLQsCB2YWwgbG9zcywg0LAgRHJvcG91dCDQuCDQsNGD0LPQvNC10L3RgtCw0YbQuNGPINC80LXRiNCw0Y7RgiDQt9Cw0YPRh9C40LLQsNGC0YwgdHJhaW4uIiwgInB0cyI6IDF9LCB7InNlYyI6ICJ2aWQiLCAidHlwZSI6ICJudW0iLCAidGV4dCI6ICLQktC40LTQtdC+IDMwIEZQUyDQtNC70LjRgtGB0Y8gMiDQvNC40L3Rg9GC0YsgMzAg0YHQtdC60YPQvdC0LiDQodC60L7Qu9GM0LrQviDQsiDQvdGR0Lwg0LrQsNC00YDQvtCyPyIsICJhbnN3ZXIiOiA0NTAwLCAiZXhwbGFpbiI6ICIxNTAg0YHQtdC60YPQvdC0IMK3IDMwINC60LDQtNGA0L7QsiA9IDQgNTAwLiIsICJwdHMiOiAyfSwgeyJzZWMiOiAidmlkIiwgInR5cGUiOiAibnVtIiwgInRleHQiOiAi0JrQsNC00YAgMTI4MMOXNzIwLCAzINCx0LDQudGC0LAg0L3QsCDQv9C40LrRgdC10LvRjCwgMzAgRlBTLiDQodC60L7Qu9GM0LrQviDQvNC10LPQsNCx0LDQudGCINCyINGB0LXQutGD0L3QtNGDINCy0LXRgdC40YIg0YLQsNC60L7QtSDQstC40LTQtdC+ICoq0LHQtdC3INGB0LbQsNGC0LjRjyoqPyAoMSDQnNCRID0gMSAwMDAgMDAwINCx0LDQudGCLCDQvNC+0LbQvdC+INGBINGC0L7Rh9C90L7RgdGC0YzRjiDQtNC+INGG0LXQu9C+0LPQvikiLCAiYW5zd2VyIjogODIuOTQ0LCAidG9sIjogMSwgInVuaXQiOiAi0JzQkS/RgSIsICJleHBsYWluIjogIjEyODAgwrcgNzIwIMK3IDMgPSAyIDc2NCA4MDAg0LHQsNC50YIg0L3QsCDQutCw0LTRgCwgwrcgMzAg4omIIDgzINCc0JEg0LIg0YHQtdC60YPQvdC00YMuINCf0L7RjdGC0L7QvNGDINCy0LjQtNC10L4g0LLRgdC10LPQtNCwINGB0LbQuNC80LDRjtGCINC60L7QtNC10LrQsNC80LguIiwgInB0cyI6IDJ9LCB7InNlYyI6ICJ2aWQiLCAidHlwZSI6ICJjaG9pY2UiLCAidGV4dCI6ICJgaW1nID0gY3YyLmltcmVhZCgncGhvdG8uanBnJylgLCDQuCBgaW1nWzAsIDBdYCDRgNCw0LLQvdC+IGBbMjU1LCAwLCAwXWAuINCa0LDQutC+0LPQviDRhtCy0LXRgtCwINC70LXQstGL0Lkg0LLQtdGA0YXQvdC40Lkg0L/QuNC60YHQtdC70Yw/IiwgIm9wdGlvbnMiOiBbItCa0YDQsNGB0L3Ri9C5IiwgItCh0LjQvdC40LkiLCAi0JHQtdC70YvQuSIsICLQl9C10LvRkdC90YvQuSJdLCAiY29ycmVjdCI6IDEsICJleHBsYWluIjogIk9wZW5DViDRhdGA0LDQvdC40YIg0LrQsNC90LDQu9GLINCyINC/0L7RgNGP0LTQutC1IEJHUi4g0J/QtdGA0LLRi9C5INC60LDQvdCw0Lsg4oCUINGB0LjQvdC40LkuIiwgInB0cyI6IDF9LCB7InNlYyI6ICJ2aWQiLCAidHlwZSI6ICJudW0iLCAidGV4dCI6ICLQkiBPcGVuQ1Yg0L7RgtGC0LXQvdC+0LogSCDQsiBIU1Yg0LjQtNGR0YIg0L7RgiAwINC00L4gMTc5ICjQv9C+0LvQvtCy0LjQvdCwINC+0LHRi9GH0L3QvtCz0L4g0LrRgNGD0LPQsCAw4oCTMzYwwrApLiDQmtCw0LrQvtC5IEgg0YMg0YfQuNGB0YLQvtCz0L4g0LfQtdC70ZHQvdC+0LPQviwg0LXRgdC70Lgg0LIg0L7QsdGL0YfQvdC+0Lwg0LrRgNGD0LPQtSDQvtC9IDEyMMKwPyIsICJhbnN3ZXIiOiA2MCwgImV4cGxhaW4iOiAiT3BlbkNWINC00LXQu9C40YIg0LPRgNCw0LTRg9GB0Ysg0L3QsCAyLCDRh9GC0L7QsdGLINGH0LjRgdC70L4g0LLQu9C10LfQu9C+INCyINC+0LTQuNC9INCx0LDQudGCOiAxMjAgLyAyID0gNjAuIiwgInB0cyI6IDJ9LCB7InNlYyI6ICJ2aWQiLCAidHlwZSI6ICJzbGlkZXIiLCAid2lkZ2V0IjogImhzdiIsICJ0ZXh0IjogItCf0L7QtNCx0LXRgNC40YLQtSDQvdC40LbQvdGO0Y4g0Lgg0LLQtdGA0YXQvdGO0Y4g0LPRgNCw0L3QuNGG0YMg0L7RgtGC0LXQvdC60LAgSCwg0YfRgtC+0LHRiyDQvNCw0YHQutCwINC/0L7QudC80LDQu9CwICoq0YLQvtC70YzQutC+INGB0LjQvdGO0Y4qKiDRhNC40LPRg9GA0YMuIiwgImV4cGxhaW4iOiAi0KHQuNC90LjQuSDQsiBPcGVuQ1Yg0L7QutC+0LvQviBIID0gMTIwLiDQk9C+0LvRg9Cx0L7QuSAoOTApINC4INGE0LjQvtC70LXRgtC+0LLRi9C5ICgxNTApINC00L7Qu9C20L3RiyDQvtGB0YLQsNGC0YzRgdGPINC30LAg0LPRgNCw0L3QuNGG0LDQvNC4LiIsICJwdHMiOiAyfSwgeyJzZWMiOiAidmlkIiwgInR5cGUiOiAib3JkZXIiLCAidGV4dCI6ICLQodC+0LHQtdGA0LjRgtC1INC+0LHRgNCw0LHQvtGC0LrRgyDQstC40LTQtdC+INC/0L4g0LrQsNC00YDQsNC8LiBgb3V0YCDRg9C20LUg0YHQvtC30LTQsNC9LiDQntC00L3QsCDRgdGC0YDQvtC60LAg0LvQuNGI0L3Rj9GPLiIsICJsaW5lcyI6IFsiY2FwID0gY3YyLlZpZGVvQ2FwdHVyZShcImluLm1wNFwiKSIsICJ3aGlsZSBUcnVlOiIsICIgICAgcmV0LCBmcmFtZSA9IGNhcC5yZWFkKCkiLCAiICAgIGlmIG5vdCByZXQ6IiwgIiAgICAgICAgYnJlYWsiLCAiICAgIGdyYXkgPSBjdjIuY3Z0Q29sb3IoZnJhbWUsIGN2Mi5DT0xPUl9CR1IyR1JBWSkiLCAiICAgIG91dC53cml0ZShjdjIuY3Z0Q29sb3IoZ3JheSwgY3YyLkNPTE9SX0dSQVkyQkdSKSkiLCAiY2FwLnJlbGVhc2UoKSJdLCAiYWNjZXB0IjogW1swLCAxLCAyLCAzLCA0LCA1LCA2LCA3XV0sICJleHRyYSI6IFsiICAgIGZyYW1lID0gY2FwLnJlYWQoKSJdLCAiZXhwbGFpbiI6ICJyZWFkKCkg0LLQvtC30LLRgNCw0YnQsNC10YIg0L/QsNGA0YMgKNGD0LTQsNC70L7RgdGMINC70LgsINC60LDQtNGAKS4g0JrQvtCz0LTQsCDQutCw0LTRgNGLINC60L7QvdGH0LjQu9C40YHRjCwgcmV0ID0gRmFsc2Ug4oCUINCy0YvRhdC+0LTQuNC8LiBWaWRlb1dyaXRlciDQttC00ZHRgiDRgtGA0ZHRhdC60LDQvdCw0LvRjNC90YvQuSDQutCw0LTRgCwg0L/QvtGN0YLQvtC80YMg0YHQtdGA0YvQuSDQv9C10YDQtdCy0L7QtNC40Lwg0L7QsdGA0LDRgtC90L4g0LIgQkdSLiIsICJwdHMiOiAyfSwgeyJzZWMiOiAidmlkIiwgInR5cGUiOiAiY2hvaWNlIiwgInRleHQiOiAiYGZyYW1lLnNoYXBlYCDRgNCw0LLQvdC+IGAoNzIwLCAxMjgwLCAzKWAuINCn0YLQviDQv9C10YDQtdC00LDRgtGMINCyIGBjdjIuVmlkZW9Xcml0ZXIoLi4uLCBmcHMsIHNpemUpYCDQutCw0LogYHNpemVgPyIsICJvcHRpb25zIjogWyIoNzIwLCAxMjgwKSIsICIoMTI4MCwgNzIwKSIsICIoNzIwLCAxMjgwLCAzKSIsICIoMywgMTI4MCwgNzIwKSJdLCAiY29ycmVjdCI6IDEsICJleHBsYWluIjogInNoYXBlIOKAlCDRjdGC0L4gKNCy0YvRgdC+0YLQsCwg0YjQuNGA0LjQvdCwLCDQutCw0L3QsNC70YspLCDQsCBWaWRlb1dyaXRlciDQttC00ZHRgiAo0YjQuNGA0LjQvdCwLCDQstGL0YHQvtGC0LApLiDQodCw0LzQsNGPINGH0LDRgdGC0LDRjyDQv9GA0LjRh9C40L3QsCDQv9GD0YHRgtC+0LPQviDRhNCw0LnQu9CwLiIsICJwdHMiOiAxfSwgeyJzZWMiOiAidmlkIiwgInR5cGUiOiAic2xpZGVyIiwgIndpZGdldCI6ICJoYWFyIiwgInRleHQiOiAi0JrQsNGB0LrQsNC0INCl0LDQsNGA0LAg0L3QsNGI0ZHQuyA1IMKr0LvQuNGGwrssINC90LDRgdGC0L7Rj9GJ0LjRhSDRgtC+0LvRjNC60L4gMi4g0J/QvtC00LHQtdGA0LjRgtC1IGBtaW5OZWlnaGJvcnNgLCDRh9GC0L7QsdGLINC+0YHRgtCw0LvQuNGB0Ywg0YDQvtCy0L3QviDQtNCy0LAg0L3QsNGB0YLQvtGP0YnQuNGFINC70LjRhtCwLiIsICJleHBsYWluIjogIm1pbk5laWdoYm9ycyDigJQg0YHQutC+0LvRjNC60L4g0L/QtdGA0LXRgdC10LrQsNGO0YnQuNGF0YHRjyDRgdGA0LDQsdCw0YLRi9Cy0LDQvdC40Lkg0L3Rg9C20L3Qviwg0YfRgtC+0LHRiyDQv9C+0LLQtdGA0LjRgtGMINCyINC70LjRhtC+LiDQkdC+0LvRjNGI0LUg4oCUINC80LXQvdGM0YjQtSDQu9C+0LbQvdGL0YUsINC90L4g0LzQvtC20L3QviDQv9C+0YLQtdGA0Y/RgtGMINC4INC90LDRgdGC0L7Rj9GJ0LjQtS4iLCAicHRzIjogMn0sIHsic2VjIjogInZpZCIsICJ0eXBlIjogImNob2ljZSIsICJ0ZXh0IjogItCb0LjRhtC+INC90LDQudC00LXQvdC+INCyIGAoeCwgeSwgdywgaCkgPSAoMTAwLCA1MCwgODAsIDgwKWAuINCa0LDQuiDQstGL0YDQtdC30LDRgtGMINC10LPQviDQuNC3INC60LDQtNGA0LA/IiwgIm9wdGlvbnMiOiBbImZyYW1lWzEwMDoxODAsIDUwOjEzMF0iLCAiZnJhbWVbNTA6MTMwLCAxMDA6MTgwXSIsICJmcmFtZVs1MDo4MCwgMTAwOjgwXSIsICJmcmFtZVt4OncsIHk6aF0iXSwgImNvcnJlY3QiOiAxLCAiZXhwbGFpbiI6ICLQodC90LDRh9Cw0LvQsCDRgdGC0YDQvtC60LggKHkpLCDQv9C+0YLQvtC8INGB0YLQvtC70LHRhtGLICh4KTogZnJhbWVbeTp5K2gsIHg6eCt3XS4iLCAicHRzIjogMX0sIHsic2VjIjogInZpZCIsICJ0eXBlIjogImNob2ljZSIsICJ0ZXh0IjogItCg0LDRgdC60YDQsNGI0LjQstCw0LXQvCDRh9GR0YDQvdC+LdCx0LXQu9C+0LUg0LLQuNC00LXQviDQsiDQv9GA0L7RgdGC0YDQsNC90YHRgtCy0LUgTGFiLiDQp9GC0L4g0L/QvtC70YPRh9Cw0LXRgiDRgdC10YLRjCDQvdCwINCy0YXQvtC0INC4INGH0YLQviDQv9GA0LXQtNGB0LrQsNC30YvQstCw0LXRgj8iLCAib3B0aW9ucyI6IFsi0JLRhdC+0LQgUkdCLCDQstGL0YXQvtC0IEwiLCAi0JLRhdC+0LQgTCwg0LLRi9GF0L7QtCBhINC4IGIiLCAi0JLRhdC+0LQgYSDQuCBiLCDQstGL0YXQvtC0IEwiLCAi0JLRhdC+0LQgTCwg0LLRi9GF0L7QtCBSR0IiXSwgImNvcnJlY3QiOiAxLCAiZXhwbGFpbiI6ICJMIOKAlCDRj9GA0LrQvtGB0YLRjCwg0L7QvdCwINGD0LbQtSDQtdGB0YLRjCDQsiDRh9GR0YDQvdC+LdCx0LXQu9C+0Lwg0LrQsNC00YDQtS4g0KHQtdGC0Ywg0YPQs9Cw0LTRi9Cy0LDQtdGCINGC0L7Qu9GM0LrQviDRhtCy0LXRgjog0LrQsNC90LDQu9GLIGEg0LggYi4iLCAicHRzIjogMX0sIHsic2VjIjogInR4dCIsICJ0eXBlIjogIm51bSIsICJ0ZXh0IjogItCh0LrQvtC70YzQutC+INC+0LHRg9GH0LDQtdC80YvRhSDQv9Cw0YDQsNC80LXRgtGA0L7QsiDRgyBgbm4uRW1iZWRkaW5nKDEwMDAwLCA2NClgPyIsICJhbnN3ZXIiOiA2NDAwMDAsICJleHBsYWluIjogItCt0YLQviDRgtCw0LHQu9C40YbQsDogMTAgMDAwINGB0LvQvtCyIMOXINCy0LXQutGC0L7RgCDQuNC3IDY0INGH0LjRgdC10LsuINCh0LzQtdGJ0LXQvdC40Lkg0L3QtdGCLiIsICJwdHMiOiAyfSwgeyJzZWMiOiAidHh0IiwgInR5cGUiOiAib3JkZXIiLCAidGV4dCI6ICLQodC+0LHQtdGA0LjRgtC1INC/0L7QtNCz0L7RgtC+0LLQutGDINGC0LXQutGB0YLQvtCyINC6INC+0LHRg9GH0LXQvdC40Y4uINCe0LTQvdCwINGB0YLRgNC+0LrQsCDigJQg0LvQvtCy0YPRiNC60LAg0YEg0YPRgtC10YfQutC+0Lkg0LTQsNC90L3Ri9GFLiIsICJsaW5lcyI6IFsidG9rZW5zID0gW3Rva2VuaXplKHQpIGZvciB0IGluIHRleHRzXSIsICJ4VHJhaW4sIHhUZXN0LCB5VHJhaW4sIHlUZXN0ID0gdHJhaW5fdGVzdF9zcGxpdCh0b2tlbnMsIHkpIiwgImNvdW50cyA9IENvdW50ZXIodyBmb3IgdCBpbiB4VHJhaW4gZm9yIHcgaW4gdCkiLCAid29yZDJpZHggPSB7dzogaSArIDIgZm9yIGksICh3LCBfKSBpbiBlbnVtZXJhdGUoY291bnRzLm1vc3RfY29tbW9uKDUwMDApKX0iLCAiWCA9IFtwYWQoW3dvcmQyaWR4LmdldCh3LCAxKSBmb3IgdyBpbiB0XSkgZm9yIHQgaW4geFRyYWluXSJdLCAiYWNjZXB0IjogW1swLCAxLCAyLCAzLCA0XV0sICJleHRyYSI6IFsiY291bnRzID0gQ291bnRlcih3IGZvciB0IGluIHRva2VucyBmb3IgdyBpbiB0KSJdLCAiZXhwbGFpbiI6ICLQodC70L7QstCw0YDRjCDRgdGC0YDQvtC40Lwg0YLQvtC70YzQutC+INC/0L4gdHJhaW4uINCV0YHQu9C4INGB0YfQuNGC0LDRgtGMINGB0LvQvtCy0LAg0L/QviDQstGB0LXQvCDRgtC10LrRgdGC0LDQvCwg0YLQtdGB0YIgwqvQv9GA0L7RgtC10LrQsNC10YLCuyDQsiDQvtCx0YPRh9C10L3QuNC1INC4INC+0YbQtdC90LrQsCDRgdGC0LDQvdC+0LLQuNGC0YHRjyDQvdC10YfQtdGB0YLQvdC+0LkuIiwgInB0cyI6IDJ9LCB7InNlYyI6ICJ0eHQiLCAidHlwZSI6ICJjaG9pY2UiLCAidGV4dCI6ICLQoNCw0LfQvNC10YLQutCwIEJJTyDQtNC70Y8gwqvQodC10YDQs9C10Lkg0JXRgdC10L3QuNC9INGA0L7QtNC40LvRgdGPINCyINCg0Y/Qt9Cw0L3QuMK7OiIsICJvcHRpb25zIjogWyJCLVBFUiBCLVBFUiBPIE8gQi1MT0MiLCAiQi1QRVIgSS1QRVIgTyBPIEItTE9DIiwgIkktUEVSIEktUEVSIE8gTyBJLUxPQyIsICJCLVBFUiBJLVBFUiBPIEItTE9DIEktTE9DIl0sICJjb3JyZWN0IjogMSwgImV4cGxhaW4iOiAi0J/QtdGA0LLQvtC1INGB0LvQvtCy0L4g0YHRg9GJ0L3QvtGB0YLQuCDigJQgQiwg0L/RgNC+0LTQvtC70LbQtdC90LjQtSDRgtC+0Lkg0LbQtSDRgdGD0YnQvdC+0YHRgtC4IOKAlCBJLCDQvtGB0YLQsNC70YzQvdC+0LUg4oCUIE8uIiwgInB0cyI6IDF9LCB7InNlYyI6ICJ0eHQiLCAidHlwZSI6ICJudW0iLCAidGV4dCI6ICLQnNC+0LTQtdC70Ywg0L3QsNGI0LvQsCAyMCDRgdGD0YnQvdC+0YHRgtC10LksINC40Lcg0L3QuNGFIDE1INCy0LXRgNC90YsuINCS0YHQtdCz0L4g0LIg0YLQtdC60YHRgtC1IDMwINGB0YPRidC90L7RgdGC0LXQuS4g0KfQtdC80YMg0YDQsNCy0LXQvSBGMT8gKNC00LLQsCDQt9C90LDQutCwINC/0L7RgdC70LUg0LfQsNC/0Y/RgtC+0LkpIiwgImhpbnQiOiAiUHJlY2lzaW9uID0g0LLQtdGA0L3Ri9C1IC8g0L3QsNC50LTQtdC90L3Ri9C1LCBSZWNhbGwgPSDQstC10YDQvdGL0LUgLyDRgdGD0YnQtdGB0YLQstGD0Y7RidC40LUsIEYxID0gMlBSIC8gKFAgKyBSKS4iLCAiYW5zd2VyIjogMC42LCAidG9sIjogMC4wMSwgImV4cGxhaW4iOiAiUCA9IDE1LzIwID0gMCw3NSwgUiA9IDE1LzMwID0gMCw1LCBGMSA9IDIgwrcgMCw3NSDCtyAwLDUgLyAxLDI1ID0gMCw2LiIsICJwdHMiOiAyfSwgeyJzZWMiOiAidHh0IiwgInR5cGUiOiAibnVtIiwgInRleHQiOiAi0JIg0YLQtdC60YHRgtC1IDIwMDAg0YHQu9C+0LIsINC40Lcg0L3QuNGFIDI2MCDigJQg0YfQsNGB0YLQuCDRgdGD0YnQvdC+0YHRgtC10LksINC+0YHRgtCw0LvRjNC90YvQtSDQuNC80LXRjtGCINGC0LXQsyBPLiDQmtCw0LrQsNGPIGFjY3VyYWN5INGDINC80L7QtNC10LvQuCwg0LrQvtGC0L7RgNCw0Y8g0LLRgdC10Lwg0YHQu9C+0LLQsNC8INGB0YLQsNCy0LjRgiBPPyIsICJhbnN3ZXIiOiAwLjg3LCAidG9sIjogMC4wMDUsICJleHBsYWluIjogIjE3NDAgLyAyMDAwID0gMCw4Ny4g0J3QuCDQvtC00L3QvtC5INGB0YPRidC90L7RgdGC0Lgg0L3QtSDQvdCw0YjQu9CwLCDQsCBhY2N1cmFjeSA4NyUuINCf0L7RjdGC0L7QvNGDINGB0LzQvtGC0YDRj9GCIEYxLiIsICJwdHMiOiAyfSwgeyJzZWMiOiAidHh0IiwgInR5cGUiOiAibnVtIiwgInRleHQiOiAi0JjQs9GA0YPRiNC10YfQvdCw0Y8g0L/QsNC80Y/RgtGMOiBgaCA9IGggwrcgMC41ICsgeGAsINCyINC90LDRh9Cw0LvQtSBgaCA9IDBgLiDQndCwINCy0YXQvtC0INC/0L4g0L7Rh9C10YDQtdC00Lgg0L/QvtC00LDQu9C4IHggPSA0LCAwLCAyLCAwLiDQp9C10LzRgyDRgNCw0LLQvdCwIGgg0LIg0LrQvtC90YbQtT8iLCAiYW5zd2VyIjogMS41LCAidG9sIjogMC4wMDEsICJleHBsYWluIjogIjQg4oaSIDIg4oaSIDMg4oaSIDEsNS4iLCAicHRzIjogMn0sIHsic2VjIjogInR4dCIsICJ0eXBlIjogIm51bSIsICJ0ZXh0IjogItCh0LrQvtC70YzQutC+INC/0LDRgNCw0LzQtdGC0YDQvtCyINGDIGBubi5MU1RNKDY0LCA2NClgPyIsICJoaW50IjogItCjINC/0YDQvtGB0YLQvtC5IG5uLlJOTig2NCwgNjQpOiDQvNCw0YLRgNC40YbQsCDQtNC70Y8g0LLRhdC+0LTQsCA2NMOXNjQsINC80LDRgtGA0LjRhtCwINC00LvRjyDQv9Cw0LzRj9GC0LggNjTDlzY0INC4INC00LLQsCDQstC10LrRgtC+0YDQsCDRgdC80LXRidC10L3QuNC5INC/0L4gNjQuINCjIExTVE0g0YLQsNC60LjRhSDQvdCw0LHQvtGA0L7QsiA0OiDRgtGA0Lgg0LLQtdC90YLQuNC70Y8g0Lgg0LrQsNC90LTQuNC00LDRgi4iLCAiYW5zd2VyIjogMzMyODAsICJleHBsYWluIjogItCjIFJOTjogNDA5NiArIDQwOTYgKyA2NCArIDY0ID0gOCAzMjAuINCjIExTVE0g0LLRh9C10YLQstC10YDQviDQsdC+0LvRjNGI0LU6IDMzIDI4MC4iLCAicHRzIjogMn0sIHsic2VjIjogInR4dCIsICJ0eXBlIjogImNob2ljZSIsICJ0ZXh0IjogImBsc3RtID0gbm4uTFNUTSgzMiwgNTAsIGJhdGNoX2ZpcnN0PVRydWUpYCwg0LLRhdC+0LQg0YTQvtGA0LzRiyBgKDgsIDIwLCAzMilgLiDQp9GC0L4g0LLQtdGA0L3RkdGCIGBvdXQsIChoLCBjKSA9IGxzdG0oeClgPyIsICJvcHRpb25zIjogWyJvdXQgKDgsIDIwLCA1MCksIGggKDEsIDgsIDUwKSIsICJvdXQgKDgsIDUwKSwgaCAoOCwgMjAsIDUwKSIsICJvdXQgKDgsIDIwLCAzMiksIGggKDEsIDgsIDMyKSIsICJvdXQgKDIwLCA4LCA1MCksIGggKDgsIDUwKSJdLCAiY29ycmVjdCI6IDAsICJleHBsYWluIjogIm91dCDigJQg0L/QsNC80Y/RgtGMINC/0L7RgdC70LUg0LrQsNC20LTQvtCz0L4g0LjQtyAyMCDRgdC70L7Qsiwg0YDQsNC30LzQtdGAINC/0LDQvNGP0YLQuCA1MC4gaCDigJQg0L/QsNC80Y/RgtGMINC/0L7RgdC70LUg0L/QvtGB0LvQtdC00L3QtdCz0L4g0YHQu9C+0LLQsCwg0L/QtdGA0LLRi9C8INC40LTRkdGCINGH0LjRgdC70L4g0YHQu9C+0ZHQsi4iLCAicHRzIjogMX0sIHsic2VjIjogInR4dCIsICJ0eXBlIjogInNsaWRlciIsICJ3aWRnZXQiOiAidGVtcCIsICJ0ZXh0IjogItCf0L7RgdC70LUgwqvQutCw0LrCuyDRgdC70L7QstCwINCy0YHRgtGA0LXRh9Cw0LvQuNGB0Ywg0YLQsNC6OiDCq9C20LXCuyDigJQgNiDRgNCw0LcsIMKr0YLRi8K7IOKAlCAzLCDCq9C00LXQu9Cwwrsg4oCUIDEuINCf0L7QtNCx0LXRgNC40YLQtSDRgtC10LzQv9C10YDQsNGC0YPRgNGDLCDRh9GC0L7QsdGLIMKr0LbQtcK7INCy0YvQsdC40YDQsNC70L7RgdGMINGBINCy0LXRgNC+0Y/RgtC90L7RgdGC0YzRjiDQvtGCIDQ1JSDQtNC+IDU1JS4iLCAiZXhwbGFpbiI6ICLQotC10LzQv9C10YDQsNGC0YPRgNCwINCy0YvRiNC1IDEg0LLRi9GA0LDQstC90LjQstCw0LXRgiDQstC10YDQvtGP0YLQvdC+0YHRgtC4LCDQvdC40LbQtSAxIOKAlCDRg9GB0LjQu9C40LLQsNC10YIg0YHQsNC80L7QtSDRh9Cw0YHRgtC+0LUg0YHQu9C+0LLQvi4g0J/RgNC4IFQgPSAxINGDIMKr0LbQtcK7INGA0L7QstC90L4gNjAlLiIsICJwdHMiOiAyfSwgeyJzZWMiOiAidHh0IiwgInR5cGUiOiAiY2hvaWNlIiwgInRleHQiOiAi0J7RgtCy0LXRgiDQsiDQtNCw0YLQsNGB0LXRgtC1OiDCq9C20LTRkdGCINCy0LDRgcK7LiDQp9GC0L4g0L/QvtC00LDRkdC8INC90LAg0LLRhdC+0LQg0LTQtdC60L7QtNC40YDQvtCy0YnQuNC60YMg0L/RgNC4INC+0LHRg9GH0LXQvdC40Lgg0Lgg0YfRgtC+INC+0L0g0LTQvtC70LbQtdC9INGD0LPQsNC00LDRgtGMPyIsICJvcHRpb25zIjogWyLQstGF0L7QtDog0LbQtNGR0YIg0LLQsNGBIDxFT1M+LCDQstGL0YXQvtC0OiA8Qk9TPiDQttC00ZHRgiDQstCw0YEiLCAi0LLRhdC+0LQ6IDxCT1M+INC20LTRkdGCINCy0LDRgSwg0LLRi9GF0L7QtDog0LbQtNGR0YIg0LLQsNGBIDxFT1M+IiwgItCy0YXQvtC0OiA8Qk9TPiDQttC00ZHRgiDQstCw0YEgPEVPUz4sINCy0YvRhdC+0LQ6INGC0L4g0LbQtSDRgdCw0LzQvtC1IiwgItCy0YXQvtC0OiDQttC00ZHRgiDQstCw0YEsINCy0YvRhdC+0LQ6INCy0LDRgSDQttC00ZHRgiJdLCAiY29ycmVjdCI6IDEsICJleHBsYWluIjogItCS0YvRhdC+0LQg0YHQtNCy0LjQvdGD0YIg0L3QsCDQvtC00L3QviDRgdC70L7QstC+OiDQvdCwINC60LDQttC00L7QvCDRiNCw0LPQtSDQtNC10LrQvtC00LjRgNC+0LLRidC40Log0LLQuNC00LjRgiDQv9GA0L7RiNC70L7QtSDQv9GA0LDQstC40LvRjNC90L7QtSDRgdC70L7QstC+INC4INGD0LPQsNC00YvQstCw0LXRgiDRgdC70LXQtNGD0Y7RidC10LUuIiwgInB0cyI6IDF9LCB7InNlYyI6ICJ0eHQiLCAidHlwZSI6ICJvcmRlciIsICJ0ZXh0IjogItCh0L7QsdC10YDQuNGC0LUg0YTRg9C90LrRhtC40Y4g0L7RgtCy0LXRgtCwINGH0LDRgi3QsdC+0YLQsCAo0YLQtdC70L4g0YTRg9C90LrRhtC40LgpLiDQntC00L3QsCDRgdGC0YDQvtC60LAg0LvQuNGI0L3Rj9GPLiIsICJsaW5lcyI6IFsiXywgc3RhdGUgPSBtb2RlbC5lbmNvZGVyKG1vZGVsLmVtYihxKSkiLCAid29yZCwgYW5zd2VyID0gQk9TLCBbXSIsICJmb3IgXyBpbiByYW5nZShtYXhfbGVuKToiLCAiICAgIG91dCwgc3RhdGUgPSBtb2RlbC5kZWNvZGVyKG1vZGVsLmVtYih0b3JjaC50ZW5zb3IoW1t3b3JkXV0pKSwgc3RhdGUpIiwgIiAgICB3b3JkID0gaW50KG1vZGVsLmhlYWQob3V0WzAsIC0xXSkuYXJnbWF4KCkpIiwgIiAgICBpZiB3b3JkID09IEVPUzogYnJlYWsiLCAiICAgIGFuc3dlci5hcHBlbmQoaXRvc1t3b3JkXSkiXSwgImFjY2VwdCI6IFtbMCwgMSwgMiwgMywgNCwgNSwgNl1dLCAiZXh0cmEiOiBbIiAgICBzdGF0ZSA9IE5vbmUiXSwgImV4cGxhaW4iOiAi0JrQvtC00LjRgNC+0LLRidC40Log0LTQsNGR0YIg0L/QsNC80Y/RgtGMLCDQtNC10LrQvtC00LjRgNC+0LLRidC40Log0YHRgtCw0YDRgtGD0LXRgiDRgSA8Qk9TPiDQuCDQvdCwINC60LDQttC00L7QvCDRiNCw0LPQtSDQv9C+0LvRg9GH0LDQtdGCINGB0LLQvtGRINC/0YDQvtGI0LvQvtC1INGB0LvQvtCy0L4g0Lgg0L/QsNC80Y/RgtGMLiDQntCx0L3Rg9C70Y/RgtGMIHN0YXRlINC90LXQu9GM0LfRjzog0YLQsNC6INCx0L7RgiDQt9Cw0LHRg9C00LXRgiDQstC+0L/RgNC+0YEuIiwgInB0cyI6IDJ9XX0='), c => c.charCodeAt(0))));
+const QS = DATA.questions, SEC = DATA.sections, SEC_KEYS = Object.keys(SEC);
+const KEY = 'ml-review-v1', SALT = 'ithub-3p1-ml';
+const app = document.getElementById('app');
+const MAX = QS.reduce((s, q) => s + q.pts, 0);
+
+// ---------- состояние ----------
+let S = load() || fresh();
+function fresh(attempt) {
+  return { name: '', start: 0, end: 0, idx: 0, answers: [], shownAt: {}, intro: {}, attempt: attempt || 1 };
+}
+function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+// ---------- утилиты ----------
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const md = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+const fmt = ms => { const s = Math.max(0, Math.round(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+const h = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
+function hash(s) { let x = 5381; for (const c of s + SALT) x = (Math.imul(x, 33) ^ c.charCodeAt(0)) >>> 0; return x.toString(36); }
+function rng(seed) { return () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }; }
+function shuffle(a, seed) { const r = rng(seed); a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const score = (filter = () => true) => S.answers.reduce((s, a, i) => s + (a && filter(QS[i]) && a.ok ? QS[i].pts : 0), 0);
+const maxOf = sec => QS.filter(q => q.sec === sec).reduce((s, q) => s + q.pts, 0);
+const secTime = sec => S.answers.reduce((s, a, i) => s + (a && QS[i].sec === sec ? a.spent : 0), 0);
+const elapsed = () => S.start ? (S.end || Date.now()) - S.start : 0;
+
+// ---------- шапка и таймер ----------
+let timerEl = null;
+setInterval(() => { if (timerEl) timerEl.textContent = '⏱ ' + fmt(elapsed()); }, 500);
+function header(sec) {
+  const hd = h('header');
+  hd.append(h('span', { className: 'chip', textContent: SEC[sec] }), h('span', { className: 'grow' }));
+  hd.append(h('span', { className: 'stat', textContent: `Вопрос ${S.idx + 1} / ${QS.length}` }));
+  hd.append(h('span', { className: 'stat', textContent: `★ ${score()}` }));
+  timerEl = h('span', { className: 'stat', textContent: '⏱ ' + fmt(elapsed()) });
+  hd.append(timerEl);
+  const pr = h('div', { className: 'progress' }); pr.append(h('div', { style: `width:${S.idx / QS.length * 100}%` }));
+  return [hd, pr];
+}
+
+// ---------- экраны ----------
+function render() {
+  app.innerHTML = ''; timerEl = null;
+  if (!S.start) return startScreen();
+  if (S.end) return resultScreen();
+  const q = QS[S.idx];
+  if (!S.intro[q.sec]) return introScreen(q.sec);
+  questionScreen(q);
+}
+
+function startScreen() {
+  const c = h('div', { className: 'card' });
+  c.innerHTML = `<h1>Большое повторение</h1>
+    <p>Три раунда: <b>Изображения</b>, <b>Видео</b> и <b>Текст</b>. Всего ${QS.length} вопросов и ${MAX} баллов.</p>
+    <ul>
+      <li>Есть задачи на <b>расчёт</b>, <b>сборку кода</b> из строк и <b>ползунки</b>, которые нужно подобрать так, чтобы задача решилась.</li>
+      <li>Время идёт с начала до конца теста. Оно попадёт в итог, но баллы за скорость не снимаются.</li>
+      <li>Ответ проверяется сразу, вернуться к вопросу нельзя. Бумага и калькулятор разрешены, нейросети — нет.</li>
+      <li>Если случайно закрыли вкладку, откройте файл снова в том же браузере: тест продолжится.</li>
+    </ul>
+    <p><b>Фамилия и имя:</b></p>`;
+  const inp = h('input', { className: 'name', placeholder: 'Иванов Иван' });
+  const go = h('button', { className: 'btn primary', textContent: 'Начать ▶', disabled: true });
+  inp.oninput = () => go.disabled = inp.value.trim().length < 3;
+  inp.onkeydown = e => { if (e.key === 'Enter' && !go.disabled) go.click(); };
+  go.onclick = () => { S.name = inp.value.trim(); S.start = Date.now(); save(); render(); };
+  const a = h('div', { className: 'actions' }); a.append(go);
+  c.append(inp, a);
+  const v = h('p', { className: 'muted', style: 'margin-top:24px;font-size:15px' });
+  const link = h('a', { href: '#', textContent: 'Проверить код результата (для преподавателя)' });
+  link.onclick = e => { e.preventDefault(); verifyScreen(); };
+  v.append(link); c.append(v);
+  app.append(c); inp.focus();
+}
+
+function verifyScreen() {
+  app.innerHTML = '';
+  const c = h('div', { className: 'card' }, '<h2>Проверка кода результата</h2><p class="muted">Вставьте строку, которую прислал студент.</p>');
+  const ta = h('textarea', { rows: 3 }); const out = h('p');
+  const b = h('button', { className: 'btn primary', textContent: 'Проверить' });
+  b.onclick = () => {
+    const s = ta.value.trim(), i = s.lastIndexOf(' | #');
+    const ok = i > 0 && hash(s.slice(0, i)) === s.slice(i + 4);
+    out.innerHTML = ok ? '✅ <b>Код настоящий</b>: строку не меняли.' : '❌ <b>Код не сходится</b>: строку изменили или скопировали не целиком.';
+  };
+  const back = h('button', { className: 'btn', textContent: '← Назад' }); back.onclick = render;
+  const a = h('div', { className: 'actions' }); a.append(b, back);
+  c.append(ta, a, out); app.append(c);
+}
+
+function introScreen(sec) {
+  const n = QS.filter(q => q.sec === sec).length, k = SEC_KEYS.indexOf(sec) + 1;
+  const c = h('div', { className: 'card' });
+  c.innerHTML = `<p class="muted">Раунд ${k} из ${SEC_KEYS.length}</p><h1>${SEC[sec]}</h1><p>${n} вопросов, ${maxOf(sec)} баллов.</p>`;
+  if (k > 1) c.innerHTML += `<p>Пока набрано <b>${score()}</b> баллов за <b>${fmt(elapsed())}</b>.</p>`;
+  const b = h('button', { className: 'btn primary', textContent: 'Поехали ▶' });
+  b.onclick = () => { S.intro[sec] = true; save(); render(); };
+  const a = h('div', { className: 'actions' }); a.append(b); c.append(a);
+  app.append(...header(sec), c); b.focus();
+}
+
+function questionScreen(q) {
+  if (!S.shownAt[S.idx]) { S.shownAt[S.idx] = Date.now(); save(); }
+  const c = h('div', { className: 'card' });
+  const kind = { choice: 'Выбор', num: 'Расчёт', order: 'Конструктор кода', slider: 'Подбери параметр' }[q.type];
+  c.append(h('p', { className: 'muted', style: 'margin:0 0 6px;font-weight:700' }, `${kind} · ${q.pts} ${q.pts === 1 ? 'балл' : 'балла'}`));
+  c.append(h('h2', {}, md(q.text)));
+  if (q.code) c.append(h('pre', { className: 'code', textContent: q.code }));
+  const body = h('div'); c.append(body);
+  const w = WIDGETS[q.type === 'slider' ? q.widget : q.type](q, body);
+  if (q.hint) {
+    const hb = h('button', { className: 'btn', textContent: '💡 Подсказка' });
+    hb.onclick = () => { hb.replaceWith(h('div', { className: 'hint' }, md(q.hint))); };
+    body.append(h('div', { style: 'margin-top:12px' })); body.lastChild.append(hb);
+  }
+  const check = h('button', { className: 'btn primary', textContent: 'Проверить' });
+  const next = h('button', { className: 'btn primary', textContent: S.idx === QS.length - 1 ? 'К результатам ▶' : 'Дальше ▶', style: 'display:none' });
+  const fb = h('div');
+  const done = S.answers[S.idx];
+  const finish = (ok) => {
+    c.classList.add('lock'); w.lock && w.lock(ok);
+    check.style.display = 'none'; next.style.display = '';
+    fb.className = 'fb ' + (ok ? 'ok' : 'no');
+    fb.innerHTML = (ok ? '✅ <b>Верно!</b> ' : '❌ <b>Неверно.</b> ' + (w.answer ? w.answer() + ' ' : '')) + md(q.explain);
+    next.focus();
+  };
+  check.onclick = () => {
+    if (!w.ready()) { fb.className = 'fb no'; fb.textContent = 'Сначала дайте ответ.'; return; }
+    const ok = !!w.check();
+    S.answers[S.idx] = { ok, spent: Date.now() - S.shownAt[S.idx], given: w.given ? w.given() : '' };
+    save(); finish(ok);
+    hdr[0].querySelectorAll('.stat')[1].textContent = `★ ${score()}`;
+  };
+  next.onclick = () => {
+    S.idx++;
+    if (S.idx >= QS.length) { S.idx = QS.length - 1; S.end = Date.now(); }
+    save(); render(); scrollTo(0, 0);
+  };
+  const a = h('div', { className: 'actions' }); a.append(check, next); c.append(a, fb);
+  const hdr = header(q.sec);
+  app.append(...hdr, c);
+  if (done) finish(done.ok);
+}
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.target.matches('input.name, textarea')) return;
+  const btn = [...app.querySelectorAll('.actions .btn.primary')].find(b => b.style.display !== 'none' && !b.disabled);
+  if (btn && document.activeElement !== btn) { e.preventDefault(); btn.click(); }
+});
+
+function resultScreen() {
+  const total = score(), time = fmt(elapsed());
+  const secs = SEC_KEYS.map(k => ({ k, s: score(q => q.sec === k), m: maxOf(k), t: fmt(secTime(k)) }));
+  const date = new Date(S.end).toLocaleDateString('ru-RU');
+  const body = `ML-ПОВТОРЕНИЕ | ${S.name} | ${total}/${MAX} | ${time} | ` + secs.map(x => `${SEC[x.k].split(' ')[1][0]} ${x.s}/${x.m}`).join(' ') + ` | попытка ${S.attempt} | ${date}`;
+  const code = body + ' | #' + hash(body);
+  const c = h('div', { className: 'card' });
+  c.innerHTML = `<p class="muted">${esc(S.name)}</p><h1>Готово!</h1>
+    <div class="big">${total} / ${MAX}</div>
+    <p>Это <b>${Math.round(total / MAX * 100)}%</b> за <b>${time}</b>.</p>
+    <div class="secgrid">${secs.map(x => `<div>${SEC[x.k]}<br>${x.s} / ${x.m}<br><span class="muted">${x.t}</span></div>`).join('')}</div>
+    <p><b>Код результата.</b> Скопируйте его целиком и отправьте преподавателю в LXP:</p>
+    <div class="codebox" id="code">${esc(code)}</div>`;
+  const cp = h('button', { className: 'btn primary', textContent: '📋 Скопировать код' });
+  cp.onclick = () => { navigator.clipboard.writeText(code).then(() => cp.textContent = '✅ Скопировано', () => { getSelection().selectAllChildren(document.getElementById('code')); cp.textContent = 'Выделено: нажмите Ctrl+C'; }); };
+  const again = h('button', { className: 'btn', textContent: 'Пройти заново' });
+  again.onclick = () => { if (confirm('Начать заново? Текущий результат пропадёт, номер попытки увеличится.')) { S = fresh(S.attempt + 1); save(); render(); } };
+  const a = h('div', { className: 'actions' }); a.append(cp, again); c.append(a);
+  const rv = h('div', { className: 'card', style: 'margin-top:20px' }, '<h2>Разбор</h2>');
+  QS.forEach((q, i) => {
+    const ans = S.answers[i] || { ok: false, spent: 0 };
+    const d = h('div', { className: 'rev' + (ans.ok ? '' : ' no') });
+    d.innerHTML = `<p><b>${i + 1}. ${ans.ok ? '✅' : '❌'}</b> ${md(q.text)} <span class="muted">(${fmt(ans.spent)})</span></p><p class="muted">${md(q.explain)}</p>`;
+    rv.append(d);
+  });
+  app.append(c, rv);
+}
+
+// ---------- виджеты ----------
+const WIDGETS = {};
+
+WIDGETS.choice = (q, el) => {
+  let sel = S.answers[S.idx] ? S.answers[S.idx].given : -1;
+  const btns = q.options.map((o, i) => {
+    const b = h('button', { className: 'opt' + (i === sel ? ' sel' : '') }, md(o));
+    b.onclick = () => { sel = i; btns.forEach((x, j) => x.classList.toggle('sel', j === i)); };
+    el.append(b); return b;
+  });
+  return {
+    ready: () => sel >= 0, check: () => sel === q.correct, given: () => sel,
+    lock: () => { btns[q.correct].classList.add('right'); if (sel >= 0 && sel !== q.correct) btns[sel].classList.add('wrong'); },
+  };
+};
+
+WIDGETS.num = (q, el) => {
+  const prev = S.answers[S.idx];
+  const inp = h('input', { className: 'num', placeholder: 'ответ', value: prev ? prev.given : '' });
+  const r = h('div', { className: 'row' }); r.append(inp); if (q.unit) r.append(h('span', { textContent: q.unit, style: 'font-weight:700' }));
+  el.append(r); setTimeout(() => inp.focus(), 0);
+  const val = () => parseFloat(inp.value.replace(/\s/g, '').replace(',', '.'));
+  return {
+    ready: () => !isNaN(val()), given: () => inp.value,
+    check: () => Math.abs(val() - q.answer) <= (q.tol || 0) + 1e-9,
+    answer: () => `Правильный ответ: <b>${String(q.answer).replace('.', ',')}</b>.`,
+    lock: () => { inp.disabled = true; },
+  };
+};
+
+WIDGETS.order = (q, el) => {
+  const all = q.lines.map((t, i) => ({ t, id: i })).concat((q.extra || []).map((t, i) => ({ t, id: 100 + i })));
+  const pool = shuffle(all, 7 + S.idx * 13);
+  let chosen = [];
+  el.append(h('div', { className: 'ord-label', textContent: 'Ваш код (нажмите строку, чтобы убрать):' }));
+  const box = h('div', { className: 'ord-box' }); el.append(box);
+  el.append(h('div', { className: 'ord-label', textContent: 'Строки (нажимайте по порядку):' }));
+  const src = h('div'); el.append(src);
+  const reset = h('button', { className: 'btn', textContent: '↺ Сбросить', style: 'margin-top:10px' });
+  reset.onclick = () => { chosen = []; draw(); }; el.append(reset);
+  function draw() {
+    box.innerHTML = ''; src.innerHTML = '';
+    chosen.forEach((it, k) => {
+      const b = h('button', { className: 'ord-line' }); b.append(h('span', { className: 'n', textContent: String(k + 1).padStart(2) }), document.createTextNode(it.t));
+      b.onclick = () => { chosen.splice(k, 1); draw(); }; box.append(b);
+    });
+    pool.filter(it => !chosen.includes(it)).forEach(it => {
+      const b = h('button', { className: 'ord-line', textContent: it.t });
+      b.onclick = () => { chosen.push(it); draw(); }; src.append(b);
+    });
+  }
+  draw();
+  return {
+    ready: () => chosen.length > 0, given: () => chosen.map(c => c.id).join(','),
+    check: () => q.accept.some(seq => seq.length === chosen.length && seq.every((v, i) => v === chosen[i].id)),
+    answer: () => 'Правильно так:<pre class="code">' + esc(q.accept[0].map(i => q.lines[i]).join('\n')) + '</pre>',
+    lock: () => { reset.disabled = true; },
+  };
+};
+
+function slider(el, label, min, max, step, value, fmtv = v => v) {
+  const lab = h('label', { className: 'ctl' }); const b = h('b', { textContent: fmtv(value) });
+  const r = h('input', { type: 'range', min, max, step, value });
+  lab.append(document.createTextNode(label + ': '), b, r); el.append(lab);
+  r.addEventListener('input', () => b.textContent = fmtv(+r.value));
+  return r;
+}
+
+WIDGETS.padding = (q, el) => {
+  const r = slider(el, 'padding', 0, 5, 1, 0);
+  const f = h('div', { className: 'formula' }); el.append(f);
+  const out = p => Math.floor((64 + 2 * p - 3) / 2) + 1;
+  const draw = () => { const p = +r.value; f.textContent = `выход = ⌊(64 + 2·${p} − 3) / 2⌋ + 1 = ${out(p)}`; };
+  r.addEventListener('input', draw); draw();
+  return { ready: () => true, check: () => out(+r.value) === 32, given: () => r.value, lock: () => r.disabled = true };
+};
+
+WIDGETS.threshold = (q, el) => {
+  const N = 70, img = new Uint8Array(N * N), rnd = rng(42);
+  for (let i = 0; i < N * N; i++) img[i] = 15 + Math.floor(rnd() * 41);
+  for (let k = 0; k < 26; k++) {           // шум: серые пятна 90..135
+    const cx = Math.floor(rnd() * N), cy = Math.floor(rnd() * N), rad = 1 + Math.floor(rnd() * 3), v = 90 + Math.floor(rnd() * 46);
+    for (let y = -rad; y <= rad; y++) for (let x = -rad; x <= rad; x++) if (x * x + y * y <= rad * rad && cx + x >= 0 && cx + x < N && cy + y >= 0 && cy + y < N) img[(cy + y) * N + cx + x] = v;
+  }
+  const put = (x, y) => { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && xx < N && yy >= 0 && yy < N) img[yy * N + xx] = 190 + Math.floor(rnd() * 46); } };
+  for (let x = 18; x <= 52; x++) put(x, 14);                       // цифра «7»
+  for (let t = 0; t <= 1; t += 0.01) put(Math.round(52 - 22 * t), Math.round(14 + 44 * t));
+  const row = h('div', { className: 'canv-row' });
+  const c1 = h('canvas', { width: N * 3, height: N * 3 }), c2 = h('canvas', { width: N * 3, height: N * 3 });
+  const col = (t, cv) => { const w = h('div'); w.append(h('p', { textContent: t, style: 'margin:0 0 4px;font-weight:700' }), cv); return w; };
+  row.append(col('Исходная', c1), col('Пиксели ярче порога → белые', c2)); el.append(row);
+  const r = slider(el, 'Порог', 0, 255, 1, 60);
+  const paint = (cv, f) => {
+    const ctx = cv.getContext('2d'), d = ctx.createImageData(N, N);
+    for (let i = 0; i < N * N; i++) { const v = f(img[i]); d.data.set([v, v, v, 255], i * 4); }
+    const tmp = h('canvas', { width: N, height: N }); tmp.getContext('2d').putImageData(d, 0, 0);
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(tmp, 0, 0, N * 3, N * 3);
+  };
+  paint(c1, v => v);
+  const draw = () => paint(c2, v => v > +r.value ? 255 : 0);
+  r.addEventListener('input', draw); draw();
+  return { ready: () => true, check: () => +r.value >= 135 && +r.value < 190, given: () => r.value, lock: () => r.disabled = true };
+};
+
+WIDGETS.lr = (q, el) => {
+  const cv = h('canvas', { width: 640, height: 260 }); el.append(cv);
+  const r = slider(el, 'learning rate', -5, 0, 0.1, -4, v => (10 ** v).toPrecision(2));
+  const curve = lr => { const a = lr * 100, k = 1 - 2 * a; return Array.from({ length: 21 }, (_, t) => (k ** (2 * t))); };
+  const draw = () => {
+    const ctx = cv.getContext('2d'), W = cv.width, H = cv.height, L = curve(10 ** +r.value);
+    ctx.clearRect(0, 0, W, H); ctx.font = '14px Segoe UI'; ctx.fillStyle = '#6b6680';
+    const y = v => H - 30 - Math.min(v, 1.5) / 1.5 * (H - 50);
+    ctx.strokeStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(40, y(0.01)); ctx.lineTo(W - 10, y(0.01)); ctx.stroke();
+    ctx.fillText('0,01', 4, y(0.01) + 4); ctx.fillText('1', 18, y(1) + 4); ctx.fillText('эпоха →', W - 70, H - 8); ctx.fillText('loss', 4, 16);
+    ctx.strokeStyle = '#4d96ff'; ctx.lineWidth = 3; ctx.beginPath();
+    L.forEach((v, t) => { const x = 40 + t * (W - 60) / 20; t ? ctx.lineTo(x, y(v)) : ctx.moveTo(x, y(v)); }); ctx.stroke();
+    ctx.lineWidth = 1;
+  };
+  r.addEventListener('input', draw); draw();
+  return {
+    ready: () => true, given: () => r.value, lock: () => r.disabled = true,
+    check: () => { const lr = 10 ** +r.value, k = 1 - 2 * lr * 100, L = curve(lr); return k >= 0 && L[20] < 0.01; },
+  };
+};
+
+WIDGETS.hsv = (q, el) => {
+  const shapes = [0, 30, 60, 90, 120, 150];
+  const names = ['красный', 'жёлтый', 'зелёный', 'голубой', 'синий', 'фиолетовый'];
+  const cv = h('canvas', { width: 660, height: 260 }); el.append(cv);
+  const lo = slider(el, 'Нижняя граница H', 0, 179, 1, 40), hi = slider(el, 'Верхняя граница H', 0, 179, 1, 80);
+  const draw = () => {
+    const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, 660, 260); ctx.font = '13px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#1f1b2e'; ctx.fillText('кадр', 330, 16); ctx.fillText('маска: H от ' + lo.value + ' до ' + hi.value, 330, 146);
+    shapes.forEach((hh, i) => {
+      const x = 20 + i * 108, inR = hh >= +lo.value && hh <= +hi.value;
+      ctx.fillStyle = `hsl(${hh * 2}, 85%, 50%)`;
+      if (i % 2) { ctx.beginPath(); ctx.arc(x + 45, 70, 40, 0, 7); ctx.fill(); } else ctx.fillRect(x + 5, 30, 80, 80);
+      ctx.fillStyle = '#000'; ctx.fillRect(x, 156, 90, 90);
+      if (inR) { ctx.fillStyle = '#fff'; if (i % 2) { ctx.beginPath(); ctx.arc(x + 45, 201, 38, 0, 7); ctx.fill(); } else ctx.fillRect(x + 7, 163, 76, 76); }
+      ctx.fillStyle = '#6b6680'; ctx.fillText(names[i], x + 45, 126);
+    });
+  };
+  lo.addEventListener('input', draw); hi.addEventListener('input', draw); draw();
+  return {
+    ready: () => true, given: () => lo.value + '-' + hi.value, lock: () => { lo.disabled = hi.disabled = true; },
+    check: () => { const a = +lo.value, b = +hi.value; return shapes.every(s => (s >= a && s <= b) === (s === 120)); },
+  };
+};
+
+WIDGETS.haar = (q, el) => {
+  const cv = h('canvas', { width: 640, height: 300 }); el.append(cv);
+  const r = slider(el, 'minNeighbors', 1, 10, 1, 1);
+  const faces = [[170, 140], [430, 130]];
+  const dets = [[130, 95, 80, 6], [390, 85, 80, 8], [40, 30, 50, 2], [520, 220, 60, 4], [270, 200, 55, 5]];
+  const draw = () => {
+    const ctx = cv.getContext('2d'); ctx.fillStyle = '#efe6d6'; ctx.fillRect(0, 0, 640, 300);
+    ctx.fillStyle = '#b8d4f0'; ctx.fillRect(20, 20, 140, 90); ctx.fillStyle = '#c9b79c'; ctx.fillRect(0, 250, 640, 50);
+    faces.forEach(([x, y]) => {
+      ctx.fillStyle = '#f2c9a0'; ctx.beginPath(); ctx.arc(x, y, 34, 0, 7); ctx.fill();
+      ctx.fillStyle = '#1f1b2e'; ctx.beginPath(); ctx.arc(x - 12, y - 8, 4, 0, 7); ctx.arc(x + 12, y - 8, 4, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#1f1b2e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y + 6, 14, 0.2, Math.PI - 0.2); ctx.stroke();
+      ctx.fillStyle = '#8a7fb0'; ctx.fillRect(x - 40, y + 40, 80, 70);
+    });
+    ctx.lineWidth = 4; ctx.strokeStyle = '#ff3b8d';
+    dets.filter(d => d[3] >= +r.value).forEach(([x, y, s]) => ctx.strokeRect(x, y, s, s));
+    ctx.lineWidth = 1;
+    ctx.fillStyle = '#1f1b2e'; ctx.font = 'bold 16px Segoe UI'; ctx.fillText('Найдено: ' + dets.filter(d => d[3] >= +r.value).length, 500, 24);
+  };
+  r.addEventListener('input', draw); draw();
+  return { ready: () => true, check: () => +r.value === 6, given: () => r.value, lock: () => r.disabled = true };
+};
+
+WIDGETS.temp = (q, el) => {
+  const words = [['же', 6], ['ты', 3], ['дела', 1]];
+  const box = h('div'); el.append(box);
+  const r = slider(el, 'Температура', 0.1, 3, 0.05, 0.5, v => v.toFixed(2));
+  const probs = t => { const p = words.map(([, c]) => c ** (1 / t)), s = p.reduce((a, b) => a + b, 0); return p.map(x => x / s); };
+  const draw = () => {
+    const p = probs(+r.value);
+    box.innerHTML = words.map(([w], i) => `<div style="display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;margin:8px 0;font-weight:700;font-size:18px"><span>как ${w}</span><div style="height:28px;width:${Math.max(1, p[i] * 100)}%;background:#4d96ff;border:2px solid #1f1b2e;border-radius:6px"></div></div>`).join('')
+      + '<p class="muted" style="font-size:15px">Длина полоски — вероятность слова. Вся ширина = 100%.</p>';
+  };
+  r.addEventListener('input', draw); draw();
+  return { ready: () => true, check: () => { const p = probs(+r.value)[0]; return p >= 0.45 && p <= 0.55; }, given: () => r.value, lock: () => r.disabled = true };
+};
+
+render();
+</script>
+</body>
+</html>
